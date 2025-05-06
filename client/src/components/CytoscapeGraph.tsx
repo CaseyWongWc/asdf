@@ -179,7 +179,7 @@ export default function CytoscapeGraph() {
         cy.removeAllListeners(); // Remove all registered event listeners
       };
     }
-  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode]);
+  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEditEdgeOpen]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -224,14 +224,106 @@ export default function CytoscapeGraph() {
     }
   ];
 
+  // Handle edge weight update
+  const updateEdgeWeight = () => {
+    if (currentEdge && cyRef.current) {
+      currentEdge.data('weight', edgeWeight);
+      setEditEdgeOpen(false);
+      setStatusMessage(`Edge weight updated to ${edgeWeight}`);
+    }
+  };
+
+  // Handle edge deletion from dialog
+  const deleteEdge = () => {
+    if (currentEdge && cyRef.current) {
+      const sourceLabel = cyRef.current.getElementById(currentEdge.data('source')).data('label');
+      const targetLabel = cyRef.current.getElementById(currentEdge.data('target')).data('label');
+      
+      currentEdge.remove();
+      setEditEdgeOpen(false);
+      setEdgeCount(cyRef.current.edges().length);
+      setStatusMessage(`Edge between ${sourceLabel} and ${targetLabel} deleted`);
+    }
+  };
+
   return (
-    <CytoscapeComponent
-      elements={[]}
-      style={{ width: '100%', height: '100%' }}
-      stylesheet={cytoscapeStyle}
-      layout={{ name: 'preset' }}
-      cy={(cy) => { cyRef.current = cy; }}
-      // Use default wheel sensitivity to avoid warnings
-    />
+    <>
+      <CytoscapeComponent
+        elements={[]}
+        style={{ width: '100%', height: '100%' }}
+        stylesheet={cytoscapeStyle}
+        layout={{ name: 'preset' }}
+        cy={(cy) => { cyRef.current = cy; }}
+        // Use default wheel sensitivity to avoid warnings
+      />
+
+      {/* Edge Edit Dialog */}
+      <Dialog open={editEdgeOpen} onOpenChange={setEditEdgeOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Edge</DialogTitle>
+          </DialogHeader>
+          
+          {currentEdge && (
+            <div className="py-4">
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">From</label>
+                <input 
+                  type="text" 
+                  className="w-full p-2 border rounded bg-gray-100"
+                  value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('source')).data('label') : ''}
+                  disabled 
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">To</label>
+                <input 
+                  type="text" 
+                  className="w-full p-2 border rounded bg-gray-100"
+                  value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('target')).data('label') : ''}
+                  disabled 
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Weight</label>
+                <input 
+                  type="number" 
+                  className="w-full p-2 border rounded"
+                  value={edgeWeight} 
+                  onChange={(e) => setEdgeWeight(Number(e.target.value))} 
+                  min={1}
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex justify-between">
+            <button 
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              onClick={deleteEdge}
+            >
+              Delete
+            </button>
+            <div className="space-x-2">
+              <button 
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+                onClick={() => setEditEdgeOpen(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={updateEdgeWeight}
+              >
+                Save
+              </button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
