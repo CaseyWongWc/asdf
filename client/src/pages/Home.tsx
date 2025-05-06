@@ -1,5 +1,5 @@
 import { useState } from "react";
-import SimpleGraph from "../components/SimpleGraph";
+import SimpleGraph from "../components/simple-graph";
 import CytoscapeGraph from "../components/CytoscapeGraph";
 import Header from "../components/Header";
 import InstructionBar from "../components/InstructionBar";
