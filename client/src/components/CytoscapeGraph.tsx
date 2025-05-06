@@ -24,22 +24,25 @@ export default function CytoscapeGraph() {
       setTimeout(() => {
         console.log('Adding initial Cytoscape nodes');
         
-        // Add nodes positioned across the canvas
+        // Add nodes positioned across the canvas, using timestamp to ensure unique IDs
+        const timestamp1 = Date.now();
         cy.add({
           group: 'nodes',
-          data: { id: 'n1', label: 'Node 1' },
+          data: { id: `n${timestamp1}`, label: 'Node 1' },
           position: { x: 100, y: 100 }
         });
         
+        const timestamp2 = Date.now() + 1; // Add 1 ms to ensure uniqueness
         cy.add({
           group: 'nodes',
-          data: { id: 'n2', label: 'Node 2' },
+          data: { id: `n${timestamp2}`, label: 'Node 2' },
           position: { x: 250, y: 100 }
         });
         
+        const timestamp3 = Date.now() + 2; // Add 2 ms to ensure uniqueness
         cy.add({
           group: 'nodes',
-          data: { id: 'n3', label: 'Node 3' },
+          data: { id: `n${timestamp3}`, label: 'Node 3' },
           position: { x: 175, y: 200 }
         });
         
@@ -196,7 +199,7 @@ export default function CytoscapeGraph() {
       stylesheet={cytoscapeStyle}
       layout={{ name: 'preset' }}
       cy={(cy) => { cyRef.current = cy; }}
-      wheelSensitivity={0.1}
+      // Use default wheel sensitivity to avoid warnings
     />
   );
 }
