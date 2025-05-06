@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { Trash2 } from 'lucide-react';
+import { GraphContext } from '../contexts/GraphContext';
+import { useIsMobile } from '../hooks/use-mobile';
 
 interface Node {
   id: string;
@@ -32,6 +34,7 @@ interface EdgeEditModalProps {
 
 function NodeEditModal({ node, onSave, onDelete, onCancel }: NodeEditModalProps) {
   const [label, setLabel] = useState(node?.label || '');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (node) {
@@ -43,14 +46,14 @@ function NodeEditModal({ node, onSave, onDelete, onCancel }: NodeEditModalProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 max-w-full">
+      <div className="bg-white rounded-lg p-6 w-96 max-w-[90%]">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Edit Node</h2>
+          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold`}>Edit Node</h2>
           <button 
             className="p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200"
             onClick={() => onDelete(node)}
           >
-            <Trash2 size={18} />
+            <Trash2 size={isMobile ? 16 : 18} />
           </button>
         </div>
         
@@ -96,6 +99,7 @@ function NodeEditModal({ node, onSave, onDelete, onCancel }: NodeEditModalProps)
 
 function EdgeEditModal({ edge, nodes, onSave, onDelete, onCancel }: EdgeEditModalProps) {
   const [weight, setWeight] = useState(edge?.weight || 1);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (edge) {
@@ -110,14 +114,14 @@ function EdgeEditModal({ edge, nodes, onSave, onDelete, onCancel }: EdgeEditModa
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 max-w-full">
+      <div className="bg-white rounded-lg p-6 w-96 max-w-[90%]">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Edit Edge</h2>
+          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold`}>Edit Edge</h2>
           <button 
             className="p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200"
             onClick={() => onDelete(edge)}
           >
-            <Trash2 size={18} />
+            <Trash2 size={isMobile ? 16 : 18} />
           </button>
         </div>
         
@@ -183,15 +187,23 @@ function EdgeEditModal({ edge, nodes, onSave, onDelete, onCancel }: EdgeEditModa
 }
 
 export default function SimpleGraph() {
+  // Use the graph context
+  const { setStatusMessage, setNodeCount, setEdgeCount, nodeEditId, setNodeEditId, edgeEditId, setEdgeEditId, sourceNode, setSourceNode } = useContext(GraphContext);
+  const isMobile = useIsMobile();
+  
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [nodeIdCounter, setNodeIdCounter] = useState(1);
   const [edgeIdCounter, setEdgeIdCounter] = useState(1);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [editNode, setEditNode] = useState<Node | null>(null);
   const [editEdge, setEditEdge] = useState<Edge | null>(null);
-  const [status, setStatus] = useState('Click on the canvas to add a node');
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Update the context values when nodes or edges change
+  useEffect(() => {
+    setNodeCount(nodes.length);
+    setEdgeCount(edges.length);
+  }, [nodes, edges, setNodeCount, setEdgeCount]);
 
   // Add a node at the specified position
   const addNode = (x: number, y: number) => {
@@ -205,7 +217,7 @@ export default function SimpleGraph() {
     
     setNodes([...nodes, node]);
     setNodeIdCounter(nodeIdCounter + 1);
-    setStatus(`Node ${node.label} created`);
+    setStatusMessage(`Node ${node.label} created`);
     return id;
   };
 
@@ -217,7 +229,7 @@ export default function SimpleGraph() {
     );
     
     if (existing) {
-      setStatus('Edge already exists');
+      setStatusMessage('Edge already exists');
       return null;
     }
     
@@ -231,26 +243,41 @@ export default function SimpleGraph() {
     
     setEdges([...edges, edge]);
     setEdgeIdCounter(edgeIdCounter + 1);
-    setStatus(`Edge created with weight ${weight}`);
+    setStatusMessage(`Edge created with weight ${weight}`);
     return id;
   };
+
+  // Add some initial nodes
+  useEffect(() => {
+    // Only add initial nodes if we don't have any
+    if (nodes.length === 0) {
+      setTimeout(() => {
+        console.log('Adding initial nodes');
+        addNode(100, 100);
+        addNode(250, 100);
+        addNode(150, 200);
+      }, 500);
+    }
+  }, []);
 
   // Handle clicks on the canvas
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (canvasRef.current) {
       // Check if clicking on a node or the canvas
       const target = e.target as HTMLElement;
-      const isCanvas = target === canvasRef.current;
+      const isCanvas = target === canvasRef.current || target.tagName === 'svg';
       
       if (isCanvas) {
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        if (selectedNode) {
+        console.log('Canvas click at', x, y, 'isCanvas:', isCanvas);
+        
+        if (sourceNode) {
           // Deselect the node when clicking canvas
-          setSelectedNode(null);
-          setStatus('Source node deselected');
+          setSourceNode(null);
+          setStatusMessage('Source node deselected');
         } else {
           // Add a new node
           addNode(x, y);
@@ -263,20 +290,20 @@ export default function SimpleGraph() {
   const handleNodeClick = (e: React.MouseEvent, node: Node) => {
     e.stopPropagation();
     
-    if (selectedNode) {
-      if (selectedNode === node.id) {
+    if (sourceNode) {
+      if (sourceNode === node.id) {
         // Deselect if clicking the same node
-        setSelectedNode(null);
-        setStatus('Source node deselected');
+        setSourceNode(null);
+        setStatusMessage('Source node deselected');
       } else {
         // Create an edge to this node
-        addEdge(selectedNode, node.id);
-        setSelectedNode(null);
+        addEdge(sourceNode, node.id);
+        setSourceNode(null);
       }
     } else {
       // Select this node as source
-      setSelectedNode(node.id);
-      setStatus(`Selected ${node.label} as source node`);
+      setSourceNode(node.id);
+      setStatusMessage(`Selected ${node.label} as source node`);
     }
   };
 
@@ -293,8 +320,8 @@ export default function SimpleGraph() {
     
     if (type === 'node') {
       const node = item as Node;
-      if (selectedNode === node.id) {
-        setSelectedNode(null);
+      if (sourceNode === node.id) {
+        setSourceNode(null);
       }
       
       // Remove all edges connected to this node
@@ -302,11 +329,11 @@ export default function SimpleGraph() {
       
       // Remove the node
       setNodes(nodes.filter(n => n.id !== node.id));
-      setStatus(`Node ${node.label} deleted`);
+      setStatusMessage(`Node ${node.label} deleted`);
     } else {
       const edge = item as Edge;
       setEdges(edges.filter(e => e.id !== edge.id));
-      setStatus('Edge deleted');
+      setStatusMessage('Edge deleted');
     }
   };
   
@@ -320,13 +347,13 @@ export default function SimpleGraph() {
   const handleSaveNode = (updatedNode: Node) => {
     setNodes(nodes.map(n => n.id === updatedNode.id ? updatedNode : n));
     setEditNode(null);
-    setStatus(`Node ${updatedNode.label} updated`);
+    setStatusMessage(`Node ${updatedNode.label} updated`);
   };
   
   // Delete node from modal
   const handleDeleteNode = (node: Node) => {
-    if (selectedNode === node.id) {
-      setSelectedNode(null);
+    if (sourceNode === node.id) {
+      setSourceNode(null);
     }
     
     // Remove all edges connected to this node
@@ -335,21 +362,21 @@ export default function SimpleGraph() {
     // Remove the node
     setNodes(nodes.filter(n => n.id !== node.id));
     setEditNode(null);
-    setStatus(`Node ${node.label} deleted`);
+    setStatusMessage(`Node ${node.label} deleted`);
   };
   
   // Save edited edge
   const handleSaveEdge = (updatedEdge: Edge) => {
     setEdges(edges.map(e => e.id === updatedEdge.id ? updatedEdge : e));
     setEditEdge(null);
-    setStatus(`Edge weight updated to ${updatedEdge.weight}`);
+    setStatusMessage(`Edge weight updated to ${updatedEdge.weight}`);
   };
   
   // Delete edge from modal
   const handleDeleteEdge = (edge: Edge) => {
     setEdges(edges.filter(e => e.id !== edge.id));
     setEditEdge(null);
-    setStatus('Edge deleted');
+    setStatusMessage('Edge deleted');
   };
 
   // Calculate position of the edge label
@@ -390,7 +417,7 @@ export default function SimpleGraph() {
                 x2={target.x}
                 y2={target.y}
                 stroke="#64748B"
-                strokeWidth="2"
+                strokeWidth={isMobile ? "3" : "2"}
                 markerEnd="url(#arrowhead)"
                 onClick={(e) => handleEdgeClick(e, edge)}
                 onContextMenu={(e) => handleRightClick(e, edge, 'edge')}
@@ -398,7 +425,7 @@ export default function SimpleGraph() {
               <circle 
                 cx={labelPos.x} 
                 cy={labelPos.y} 
-                r="10" 
+                r={isMobile ? "12" : "10"} 
                 fill="white" 
                 onClick={(e) => handleEdgeClick(e, edge)}
               />
@@ -407,7 +434,7 @@ export default function SimpleGraph() {
                 y={labelPos.y}
                 textAnchor="middle"
                 dy=".3em"
-                fontSize="10"
+                fontSize={isMobile ? "12" : "10"}
                 onClick={(e) => handleEdgeClick(e, edge)}
               >
                 {edge.weight}
@@ -435,16 +462,18 @@ export default function SimpleGraph() {
       {nodes.map((node) => (
         <div
           key={node.id}
-          className={`absolute rounded-full flex items-center justify-center w-10 h-10 select-none cursor-pointer
-            ${selectedNode === node.id ? 'ring-2 ring-green-600' : ''}
+          className={`absolute rounded-full flex items-center justify-center select-none cursor-pointer
+            ${sourceNode === node.id ? 'ring-2 ring-green-600' : ''}
           `}
           style={{
-            left: node.x - 20,
-            top: node.y - 20,
+            left: node.x - (isMobile ? 25 : 20),
+            top: node.y - (isMobile ? 25 : 20),
+            width: isMobile ? '50px' : '40px',
+            height: isMobile ? '50px' : '40px',
             backgroundColor: '#4299E1',
             color: 'white',
             fontWeight: 'bold',
-            fontSize: '12px'
+            fontSize: isMobile ? '14px' : '12px'
           }}
           onClick={(e) => handleNodeClick(e, node)}
           onDoubleClick={(e) => handleNodeDoubleClick(e, node)}
@@ -453,11 +482,6 @@ export default function SimpleGraph() {
           {node.label}
         </div>
       ))}
-      
-      {/* Status bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gray-100 text-sm p-2 border-t border-gray-200">
-        {status}
-      </div>
       
       {/* Node edit modal */}
       {editNode && (
