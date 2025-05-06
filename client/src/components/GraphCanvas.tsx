@@ -90,28 +90,27 @@ export default function GraphCanvas() {
         pressedElement = null;
       };
       
-      // Event: Tap on background (using tap instead of tapstart)
-      cy.on('tap', function(event) {
-        if (event.target !== cy) {
-          // Only interested in background taps here
-          return;
+      // Simple click handler for adding nodes
+      cy.on('click', function(event) {
+        // Only handle clicks on the background (not on nodes/edges)
+        if (event.target === cy) {
+          // If a source node is selected, deselect it
+          if (sourceNode) {
+            cy.getElementById(sourceNode).removeClass('source-node');
+            setSourceNode(null);
+            setStatusMessage('Source node deselected');
+            return;
+          }
+          
+          // Get the position in model coordinates
+          const pos = event.position;
+          if (pos) {
+            // Add a node at this position with a simple label
+            const newLabel = `Node ${nodeIdCounter + 1}`;
+            createNode(pos.x, pos.y, newLabel, cy);
+            setStatusMessage(`Created ${newLabel}`);
+          }
         }
-        
-        console.log('Canvas tap detected', event);
-        setStatusMessage('Canvas tapped');
-        
-        if (sourceNode) {
-          // Deselect source node if clicking empty space
-          cy.getElementById(sourceNode).removeClass('source-node');
-          setSourceNode(null);
-          setStatusMessage('Source node deselected');
-          return;
-        }
-        
-        // Create a new node at the position the user clicked
-        const position = event.position || { x: 100, y: 100 };
-        console.log('Creating node at position', position);
-        createNode(position.x, position.y, undefined, cy);
       });
 
       // Event: Tap on node

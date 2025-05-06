@@ -76,50 +76,55 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
   const [showHelp, setShowHelp] = useState<boolean>(false);
 
   const createNode = (x: number, y: number, label?: string, cy?: any) => {
-    const nextId = nodeIdCounter + 1;
-    setNodeIdCounter(nextId);
-    const id = `n${nextId}`;
-    const nodeLabel = label || `Node ${nextId}`;
-    
-    const cyInstance = cy || window.cy;
-    if (cyInstance) {
-      try {
-        // Ensure we have valid coordinates
-        const validX = isNaN(x) ? 100 : x; 
-        const validY = isNaN(y) ? 100 : y;
-        
-        // Add the node to the graph
-        cyInstance.add({
-          group: 'nodes',
-          data: { 
-            id, 
-            label: nodeLabel,
-            description: `Node ${nextId}`
-          },
-          position: { x: validX, y: validY }
-        });
-        
-        // Update state
-        setNodeCount(cyInstance.nodes().length);
-        setStatusMessage(`Node ${nodeLabel} created`);
-        
-        // Make sure the node is visible if it was created near the edge
-        setTimeout(() => {
-          const newNode = cyInstance.getElementById(id);
-          if (newNode && !newNode.inside()) {
-            cyInstance.fit(newNode, 50);
-          }
-        }, 50);
-      } catch (error) {
-        console.error("Error creating node:", error);
-        setStatusMessage(`Error creating node: ${error}`);
+    try {
+      // Increment counter
+      const nextId = nodeIdCounter + 1;
+      setNodeIdCounter(nextId);
+      
+      // Generate IDs and labels
+      const id = `n${nextId}`;
+      const nodeLabel = label || `Node ${nextId}`;
+      
+      // Get Cytoscape instance
+      const cyInstance = cy || window.cy;
+      if (!cyInstance) {
+        console.error("No Cytoscape instance available");
+        setStatusMessage("Error: Graph not initialized");
+        return id;
       }
-    } else {
-      console.error("Cytoscape instance not available");
-      setStatusMessage("Error: Graph not initialized");
-    }
     
-    return id;
+      // Simple validation
+      const validX = isNaN(x) ? 100 : x; 
+      const validY = isNaN(y) ? 100 : y;
+    
+      // Create the new element data
+      const newNode = {
+        group: 'nodes',
+        data: { 
+          id, 
+          label: nodeLabel,
+          description: `Node ${nextId}`
+        },
+        position: { x: validX, y: validY }
+      };
+    
+      // Explicitly add to the graph
+      cyInstance.add(newNode);
+      console.log(`Added node ${id} at (${validX}, ${validY})`, newNode);
+    
+      // Force a render update
+      cyInstance.forceRender();
+      
+      // Update state
+      setNodeCount(cyInstance.nodes().length);
+      setStatusMessage(`Node ${nodeLabel} created`);
+      
+      return id;
+    } catch (error) {
+      console.error("Error creating node:", error);
+      setStatusMessage(`Error creating node: ${error}`);
+      return `error_${Date.now()}`;
+    }
   };
 
   const createEdge = (sourceId: string, targetId: string, weight: number = 1, cy?: any) => {
