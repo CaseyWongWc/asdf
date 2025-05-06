@@ -196,7 +196,7 @@ export default function CytoscapeGraph() {
       stylesheet={cytoscapeStyle}
       layout={{ name: 'preset' }}
       cy={(cy) => { cyRef.current = cy; }}
-      wheelSensitivity={0.3}
+      wheelSensitivity={0.1}
     />
   );
 }

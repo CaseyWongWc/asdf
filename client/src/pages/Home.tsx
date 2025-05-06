@@ -23,8 +23,22 @@ export default function Home() {
           <div className="bg-gray-100 px-4 py-2 border-t border-b border-gray-200">
             <Tabs value={activeImpl} onValueChange={(v) => setActiveImpl(v as "simple" | "cytoscape")} className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
-                <TabsTrigger value="simple">Simple Implementation</TabsTrigger>
-                <TabsTrigger value="cytoscape">Cytoscape Implementation</TabsTrigger>
+                <TabsTrigger value="simple" className="relative">
+                  <span>Simple Implementation</span>
+                  {activeImpl === "simple" && (
+                    <span className="absolute -bottom-6 text-xs text-green-600 font-medium">
+                      Currently active
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="cytoscape" className="relative">
+                  <span>Cytoscape Implementation</span>
+                  {activeImpl === "cytoscape" && (
+                    <span className="absolute -bottom-6 text-xs text-green-600 font-medium">
+                      Currently active
+                    </span>
+                  )}
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
