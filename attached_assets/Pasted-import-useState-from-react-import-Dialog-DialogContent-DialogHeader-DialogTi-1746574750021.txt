@@ -1,0 +1,300 @@
+import { useState } from "react";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { type GraphData } from "@shared/schema";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { downloadTextFile } from "@/lib/graphUtils";
+
+interface ImportExportModalProps {
+  isOpen: boolean;
+  mode: "import" | "export";
+  graphData: GraphData;
+  onClose: () => void;
+  onImport: (data: GraphData) => void;
+}
+
+const ImportExportModal = ({ isOpen, mode, graphData, onClose, onImport }: ImportExportModalProps) => {
+  const { toast } = useToast();
+  const [importFormat, setImportFormat] = useState<"matrix" | "edgeList" | "json">("matrix");
+  const [exportFormat, setExportFormat] = useState<"matrix" | "edgeList" | "json">("matrix");
+  const [importData, setImportData] = useState("");
+
+  // Function to generate matrix string
+  const matrixToString = (matrix: number[][]): string => {
+    return matrix.map(row => row.join(',')).join('\n');
+  };
+
+  // Function to generate edge list string
+  const edgeListToString = (data: GraphData): string => {
+    return data.edges
+      .filter(edge => !edge.isTransitive && !edge.isCurrent)
+      .map(edge => {
+        const source = data.nodes.find(n => n.id === edge.source)?.label || edge.source;
+        const target = data.nodes.find(n => n.id === edge.target)?.label || edge.target;
+        return `${source},${target}`;
+      })
+      .join('\n');
+  };
+
+  // Function to handle import
+  const handleImport = () => {
+    try {
+      if (importFormat === "matrix") {
+        const rows = importData.trim().split('\n');
+        const matrix = rows.map(row => 
+          row.split(',').map(cell => parseInt(cell.trim(), 10))
+        );
+        
+        // Validate matrix
+        const rowLength = matrix[0].length;
+        const isValid = matrix.every(row => row.length === rowLength) &&
+                       matrix.every(row => row.every(cell => cell === 0 || cell === 1));
+        
+        if (!isValid) {
+          throw new Error("Invalid matrix format. Use 0s and 1s separated by commas.");
+        }
+        
+        // Create nodes and edges from matrix
+        const nodes = Array(matrix.length).fill(0).map((_, i) => ({
+          id: `n${i}`,
+          label: String.fromCharCode(65 + i),
+          position: { x: 100 + 100 * (i % 4), y: 100 + 100 * Math.floor(i / 4) }
+        }));
+        
+        const edges: Edge[] = [];
+        for (let i = 0; i < matrix.length; i++) {
+          for (let j = 0; j < matrix[i].length; j++) {
+            if (matrix[i][j] === 1) {
+              edges.push({
+                id: `e${i}-${j}`,
+                source: `n${i}`,
+                target: `n${j}`
+              });
+            }
+          }
+        }
+        
+        onImport({ nodes, edges, adjacencyMatrix: matrix });
+      } else if (importFormat === "edgeList") {
+        const lines = importData.trim().split('\n');
+        const edgeMap = new Map<string, string>();
+        
+        // Get unique node labels from edge list
+        const nodeLabels = new Set<string>();
+        lines.forEach(line => {
+          const [source, target] = line.split(',').map(s => s.trim());
+          nodeLabels.add(source);
+          nodeLabels.add(target);
+        });
+        
+        // Create nodes
+        const nodes = Array.from(nodeLabels).map((label, i) => {
+          const id = `n${i}`;
+          edgeMap.set(label, id);
+          return {
+            id,
+            label,
+            position: { x: 100 + 100 * (i % 4), y: 100 + 100 * Math.floor(i / 4) }
+          };
+        });
+        
+        // Create edges and adjacency matrix
+        const matrix = Array(nodes.length).fill(0).map(() => Array(nodes.length).fill(0));
+        const edges: Edge[] = [];
+        
+        lines.forEach(line => {
+          const [sourceLabel, targetLabel] = line.split(',').map(s => s.trim());
+          const sourceId = edgeMap.get(sourceLabel);
+          const targetId = edgeMap.get(targetLabel);
+          
+          if (sourceId && targetId) {
+            const sourceIndex = nodes.findIndex(n => n.id === sourceId);
+            const targetIndex = nodes.findIndex(n => n.id === targetId);
+            
+            if (sourceIndex !== -1 && targetIndex !== -1) {
+              matrix[sourceIndex][targetIndex] = 1;
+              edges.push({
+                id: `e${sourceIndex}-${targetIndex}`,
+                source: sourceId,
+                target: targetId
+              });
+            }
+          }
+        });
+        
+        onImport({ nodes, edges, adjacencyMatrix: matrix });
+      } else if (importFormat === "json") {
+        const data = JSON.parse(importData) as GraphData;
+        onImport(data);
+      }
+    } catch (error) {
+      toast({
+        title: "Import Error",
+        description: error instanceof Error ? error.message : "Failed to import graph data",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Function to handle export
+  const handleExport = (format: "matrix" | "edgeList" | "json") => {
+    let content = "";
+    let filename = "";
+    
+    if (format === "matrix") {
+      content = matrixToString(graphData.adjacencyMatrix);
+      filename = "adjacency_matrix.csv";
+    } else if (format === "edgeList") {
+      content = edgeListToString(graphData);
+      filename = "edge_list.csv";
+    } else if (format === "json") {
+      content = JSON.stringify(graphData, null, 2);
+      filename = "graph_data.json";
+    }
+    
+    downloadTextFile(content, filename);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{mode === "import" ? "Import Graph" : "Export Graph"}</DialogTitle>
+        </DialogHeader>
+
+        {mode === "import" ? (
+          <>
+            <Tabs defaultValue="matrix" value={importFormat} onValueChange={(val) => setImportFormat(val as any)}>
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="matrix">Adjacency Matrix</TabsTrigger>
+                <TabsTrigger value="edgeList">Edge List</TabsTrigger>
+                <TabsTrigger value="json">JSON</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="matrix">
+                <div className="mb-4">
+                  <Label htmlFor="importData">Paste your adjacency matrix here:</Label>
+                  <Textarea 
+                    id="importData" 
+                    placeholder={`0,0,1,0\n0,1,1,0\n0,0,1,1\n0,0,0,1`}
+                    rows={6}
+                    className="font-mono"
+                    value={importData}
+                    onChange={(e) => setImportData(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Format: Each row on a new line, values separated by commas. Use 0 for no edge and 1 for an edge.
+                  </p>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="edgeList">
+                <div className="mb-4">
+                  <Label htmlFor="importData">Paste your edge list here:</Label>
+                  <Textarea 
+                    id="importData" 
+                    placeholder={`A,C\nB,B\nB,C\nC,D`}
+                    rows={6}
+                    className="font-mono"
+                    value={importData}
+                    onChange={(e) => setImportData(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Format: One edge per line as "source,target". Node labels will be extracted automatically.
+                  </p>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="json">
+                <div className="mb-4">
+                  <Label htmlFor="importData">Paste your JSON data here:</Label>
+                  <Textarea 
+                    id="importData" 
+                    placeholder={`{\n  "nodes": [...],\n  "edges": [...],\n  "adjacencyMatrix": [...]\n}`}
+                    rows={6}
+                    className="font-mono"
+                    value={importData}
+                    onChange={(e) => setImportData(e.target.value)}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleImport}>
+                Import
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <Tabs defaultValue="matrix" value={exportFormat} onValueChange={(val) => setExportFormat(val as any)}>
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="matrix">Adjacency Matrix</TabsTrigger>
+                <TabsTrigger value="edgeList">Edge List</TabsTrigger>
+                <TabsTrigger value="json">JSON</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="matrix">
+                <div className="mb-4">
+                  <Textarea 
+                    readOnly
+                    rows={6}
+                    className="font-mono"
+                    value={matrixToString(graphData.adjacencyMatrix)}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="edgeList">
+                <div className="mb-4">
+                  <Textarea 
+                    readOnly
+                    rows={6}
+                    className="font-mono"
+                    value={edgeListToString(graphData)}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="json">
+                <div className="mb-4">
+                  <Textarea 
+                    readOnly
+                    rows={6}
+                    className="font-mono"
+                    value={JSON.stringify(graphData, null, 2)}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={() => handleExport(exportFormat)}>
+                Download
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ImportExportModal;
