@@ -4,10 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function NodeEditModal() {
   const { nodeEditId, setNodeEditId, statusMessage, setStatusMessage } = useContext(GraphContext);
   const [nodeLabel, setNodeLabel] = useState("");
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     if (nodeEditId && window.cy) {
@@ -35,27 +37,28 @@ export default function NodeEditModal() {
 
   return (
     <Dialog open={!!nodeEditId} onOpenChange={(open) => !open && setNodeEditId(null)}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className={`${isMobile ? 'max-w-[90%]' : 'sm:max-w-[425px]'}`}>
         <DialogHeader>
-          <DialogTitle>Edit Node</DialogTitle>
+          <DialogTitle className={isMobile ? 'text-xl' : ''}>Edit Node</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="node-label" className="text-right">
+          <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-4 items-center gap-4'}`}>
+            <Label htmlFor="node-label" className={isMobile ? 'text-left text-base' : 'text-right'}>
               Node Label
             </Label>
             <Input
               id="node-label"
               value={nodeLabel}
               onChange={(e) => setNodeLabel(e.target.value)}
-              className="col-span-3"
+              className={isMobile ? '' : 'col-span-3'}
               autoFocus
+              size={isMobile ? 30 : undefined}
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-          <Button onClick={handleSave}>Save</Button>
+        <DialogFooter className={isMobile ? 'flex-col space-y-2' : ''}>
+          <Button variant="outline" onClick={handleCancel} className={isMobile ? 'w-full py-3' : ''}>Cancel</Button>
+          <Button onClick={handleSave} className={isMobile ? 'w-full py-3' : ''}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

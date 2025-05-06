@@ -46,7 +46,6 @@ export default function GraphCanvas() {
       if (isMobile) {
         cy.userZoomingEnabled(false); // Disable mousewheel/pinch zoom
         // Optimize touch handling
-        cy.touchTapThreshold(8); // Increase tap threshold for better touch detection
         cy.autoungrabify(false); // Allow nodes to be dragged
         cy.autounselectify(false); // Allow elements to be selected by touch
       }
@@ -181,7 +180,7 @@ export default function GraphCanvas() {
     }
   }, [isMobile]);
 
-  const cytoscapeStyle: cytoscape.Stylesheet[] = [
+  const cytoscapeStyle: any[] = [
     {
       selector: 'node',
       style: {
@@ -190,9 +189,9 @@ export default function GraphCanvas() {
         'text-valign': 'center',
         'text-halign': 'center',
         'color': 'white',
-        'font-size': '12px',
-        'width': '40px',
-        'height': '40px',
+        'font-size': isMobile ? '14px' : '12px',
+        'width': isMobile ? '50px' : '40px',
+        'height': isMobile ? '50px' : '40px',
         'text-outline-width': '1px',
         'text-outline-color': '#4299E1'
       }
@@ -200,18 +199,18 @@ export default function GraphCanvas() {
     {
       selector: 'edge',
       style: {
-        'width': 2,
+        'width': isMobile ? 3 : 2,
         'line-color': '#64748B',
         'target-arrow-color': '#64748B',
         'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
         'label': 'data(weight)',
-        'font-size': '10px',
+        'font-size': isMobile ? '14px' : '10px',
         'text-outline-width': '2px',
         'text-outline-color': 'white',
         'text-background-opacity': 1,
         'text-background-color': 'white',
-        'text-background-padding': '2px',
+        'text-background-padding': isMobile ? '4px' : '2px',
         'text-background-shape': 'roundrectangle'
       }
     },

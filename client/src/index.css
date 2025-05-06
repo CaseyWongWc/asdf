@@ -56,3 +56,27 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Larger touch targets for buttons */
+  .btn-mobile {
+    @apply min-h-12 min-w-12 p-4;
+  }
+
+  /* Larger text in modals and forms */
+  .mobile-text-lg {
+    @apply text-lg;
+  }
+  
+  /* Prevent zoom on double-tap for iOS/Safari */
+  html {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Larger hit areas for touch elements */
+  input, button, select, textarea {
+    @apply p-3 text-base;
+  }
+}
