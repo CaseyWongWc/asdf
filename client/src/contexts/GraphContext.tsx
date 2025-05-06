@@ -83,14 +83,40 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
     
     const cyInstance = cy || window.cy;
     if (cyInstance) {
-      cyInstance.add({
-        group: 'nodes',
-        data: { id, label: nodeLabel },
-        position: { x, y }
-      });
-      
-      setNodeCount(cyInstance.nodes().length);
-      setStatusMessage(`Node ${nodeLabel} created`);
+      try {
+        // Ensure we have valid coordinates
+        const validX = isNaN(x) ? 100 : x; 
+        const validY = isNaN(y) ? 100 : y;
+        
+        // Add the node to the graph
+        cyInstance.add({
+          group: 'nodes',
+          data: { 
+            id, 
+            label: nodeLabel,
+            description: `Node ${nextId}`
+          },
+          position: { x: validX, y: validY }
+        });
+        
+        // Update state
+        setNodeCount(cyInstance.nodes().length);
+        setStatusMessage(`Node ${nodeLabel} created`);
+        
+        // Make sure the node is visible if it was created near the edge
+        setTimeout(() => {
+          const newNode = cyInstance.getElementById(id);
+          if (newNode && !newNode.inside()) {
+            cyInstance.fit(newNode, 50);
+          }
+        }, 50);
+      } catch (error) {
+        console.error("Error creating node:", error);
+        setStatusMessage(`Error creating node: ${error}`);
+      }
+    } else {
+      console.error("Cytoscape instance not available");
+      setStatusMessage("Error: Graph not initialized");
     }
     
     return id;

@@ -90,8 +90,8 @@ export default function GraphCanvas() {
         pressedElement = null;
       };
       
-      // Event: Tap on background (using cxttapstart instead of tap to ensure we get the right target)
-      cy.on('tapstart', function(event) {
+      // Event: Tap on background (using tap instead of tapstart)
+      cy.on('tap', function(event) {
         if (event.target !== cy) {
           // Only interested in background taps here
           return;
@@ -108,7 +108,7 @@ export default function GraphCanvas() {
           return;
         }
         
-        // Create a new node
+        // Create a new node at the position the user clicked
         const position = event.position || { x: 100, y: 100 };
         console.log('Creating node at position', position);
         createNode(position.x, position.y, undefined, cy);

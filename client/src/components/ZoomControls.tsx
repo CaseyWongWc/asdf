@@ -45,23 +45,29 @@ export default function ZoomControls({ cyRef }: ZoomControlsProps) {
   
   const handleAddNode = () => {
     if (cyRef.current) {
-      // Get the center of the viewport
-      const centerX = cyRef.current.width() / 2;
-      const centerY = cyRef.current.height() / 2;
+      // Get the current viewport dimensions
+      const width = cyRef.current.width();
+      const height = cyRef.current.height();
       
-      // Get current pan and zoom level
+      // Get current viewport center in rendered coordinates
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Get current pan and zoom to convert to model coordinates
       const pan = cyRef.current.pan();
       const zoom = cyRef.current.zoom();
       
-      // Calculate the position in the graph
+      // Convert to model coordinates
       const modelX = (centerX - pan.x) / zoom;
       const modelY = (centerY - pan.y) / zoom;
       
-      // Create a node at this position with a slight random offset
+      // Add random offset to avoid stacking
       const offsetX = (Math.random() - 0.5) * 100;
       const offsetY = (Math.random() - 0.5) * 100;
       
-      createNode(modelX + offsetX, modelY + offsetY, undefined, cyRef.current);
+      // Add a node at this position
+      const newNodeId = createNode(modelX + offsetX, modelY + offsetY, undefined, cyRef.current);
+      console.log(`Created node ${newNodeId} at position: ${modelX + offsetX}, ${modelY + offsetY}`);
     }
   };
 
