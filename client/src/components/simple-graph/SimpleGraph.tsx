@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { GraphContext } from '../../contexts/GraphContext';
 import { useIsMobile } from '../../hooks/use-mobile';
-import { Node, Edge } from './types';
+import { Node, Edge } from '../simple-graph/types';
 import NodeEditModal from './NodeEditModal';
 import EdgeEditModal from './EdgeEditModal';
 

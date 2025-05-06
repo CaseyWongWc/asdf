@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useContext } from 'react';
+import React, { useEffect, useRef, useContext, useState } from 'react';
 import { GraphContext } from '../contexts/GraphContext';
 import CytoscapeComponent from 'react-cytoscapejs';
 import { useIsMobile } from '../hooks/use-mobile';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function CytoscapeGraph() {
   const cyRef = useRef<any>(null);
@@ -13,6 +14,11 @@ export default function CytoscapeGraph() {
     setSourceNode 
   } = useContext(GraphContext);
   const isMobile = useIsMobile();
+  
+  // Edge edit dialog state
+  const [editEdgeOpen, setEditEdgeOpen] = useState(false);
+  const [currentEdge, setCurrentEdge] = useState<any>(null);
+  const [edgeWeight, setEdgeWeight] = useState(1);
 
   useEffect(() => {
     if (cyRef.current) {
@@ -91,20 +97,35 @@ export default function CytoscapeGraph() {
             if (sourceNode !== node.id()) {
               const edgeId = `e${Date.now()}`;
               
-              cy.add({
-                group: 'edges',
-                data: { 
-                  id: edgeId, 
-                  source: sourceNode, 
-                  target: node.id(),
-                  weight: 1 
-                }
-              });
+              // Check if an edge already exists between these nodes (in either direction)
+              const existingEdge = cy.edges().filter(
+                (edge: any) => (
+                  (edge.data('source') === sourceNode && edge.data('target') === node.id()) ||
+                  (edge.data('source') === node.id() && edge.data('target') === sourceNode)
+                )
+              );
               
+              if (existingEdge.length > 0) {
+                setStatusMessage('Edge already exists between these nodes');
+              } else {
+                // Add an undirected edge (visually)
+                cy.add({
+                  group: 'edges',
+                  data: { 
+                    id: edgeId, 
+                    source: sourceNode, 
+                    target: node.id(),
+                    weight: 1 
+                  }
+                });
+                
+                setEdgeCount(cy.edges().length);
+                setStatusMessage(`Created edge with weight 1`);
+              }
+              
+              // Deselect the source node
               cy.getElementById(sourceNode).removeClass('source-node');
               setSourceNode(null);
-              setEdgeCount(cy.edges().length);
-              setStatusMessage(`Created edge with weight 1`);
             } else {
               // Clicked on the same node, deselect it
               node.removeClass('source-node');
@@ -116,6 +137,17 @@ export default function CytoscapeGraph() {
             node.addClass('source-node');
             setSourceNode(node.id());
             setStatusMessage(`Selected "${node.data('label')}" as source node`);
+          }
+        });
+        
+        // Edge click to edit
+        cy.on('tap', 'edge', function(event: any) {
+          const edge = event.target;
+          // Only handle edge taps if no source node is selected
+          if (!sourceNode) {
+            setCurrentEdge(edge);
+            setEdgeWeight(edge.data('weight') || 1);
+            setEditEdgeOpen(true);
           }
         });
         
@@ -170,8 +202,8 @@ export default function CytoscapeGraph() {
       style: {
         'width': isMobile ? 3 : 2,
         'line-color': '#64748B',
-        'target-arrow-color': '#64748B',
-        'target-arrow-shape': 'triangle',
+        // Remove arrow for undirected graph
+        'target-arrow-shape': 'none',
         'curve-style': 'bezier',
         'label': 'data(weight)',
         'font-size': isMobile ? '14px' : '10px',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/use-mobile';
-import { Node } from './types';
+import { Node } from '../simple-graph/types';
 
 interface NodeEditModalProps {
   node: Node | null;

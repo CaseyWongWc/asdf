@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/use-mobile';
-import { Node, Edge } from './types';
+import { Node, Edge } from '../simple-graph/types';
 
 interface EdgeEditModalProps {
   edge: Edge | null;
