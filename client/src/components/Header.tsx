@@ -2,8 +2,8 @@ import { useContext } from "react";
 import { GraphContext } from "@/contexts/GraphContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, HelpCircle, RotateCcw } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Pencil, HelpCircle, RotateCcw, Smartphone, Laptop } from "lucide-react";
+import { useIsMobile, useMobileContext } from "@/hooks/use-mobile";
 
 export default function Header() {
   const { 
@@ -14,6 +14,7 @@ export default function Header() {
     setShowHelp 
   } = useContext(GraphContext);
   const isMobile = useIsMobile();
+  const { toggleMode, isAutoDetect, setAutoDetect } = useMobileContext();
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -23,6 +24,10 @@ export default function Header() {
     if (window.confirm('Are you sure you want to reset the graph? All nodes and edges will be deleted.')) {
       resetGraph();
     }
+  };
+  
+  const handleModeToggle = () => {
+    toggleMode();
   };
 
   return (
@@ -55,11 +60,27 @@ export default function Header() {
           <Button 
             variant="outline" 
             size={isMobile ? "default" : "sm"}
-            className={isMobile ? "flex-1" : "h-9"}
+            className={isMobile ? "flex-1 mr-2" : "h-9"}
             onClick={handleResetClick}
           >
             <RotateCcw className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1.5`} />
             Reset
+          </Button>
+          <Button 
+            variant="ghost" 
+            size={isMobile ? "icon" : "sm"}
+            className={isMobile ? "w-10 h-10 ml-1 bg-gray-100" : "h-9"}
+            onClick={handleModeToggle}
+            title={isMobile ? "Switch to Desktop Mode" : "Switch to Mobile Mode"}
+          >
+            {isMobile ? (
+              <Laptop className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} ${!isMobile ? 'mr-1.5' : ''}`} />
+            ) : (
+              <>
+                <Smartphone className="h-4 w-4 mr-1.5" />
+                <span className="hidden sm:inline">Toggle Mode</span>
+              </>
+            )}
           </Button>
         </div>
       </div>

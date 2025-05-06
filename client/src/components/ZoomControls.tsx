@@ -49,14 +49,19 @@ export default function ZoomControls({ cyRef }: ZoomControlsProps) {
       const centerX = cyRef.current.width() / 2;
       const centerY = cyRef.current.height() / 2;
       
-      // Convert screen coordinates to rendered position
-      const position = cyRef.current.renderer().projectIntoViewport(centerX, centerY);
+      // Get current pan and zoom level
+      const pan = cyRef.current.pan();
+      const zoom = cyRef.current.zoom();
+      
+      // Calculate the position in the graph
+      const modelX = (centerX - pan.x) / zoom;
+      const modelY = (centerY - pan.y) / zoom;
       
       // Create a node at this position with a slight random offset
       const offsetX = (Math.random() - 0.5) * 100;
       const offsetY = (Math.random() - 0.5) * 100;
       
-      createNode(position[0] + offsetX, position[1] + offsetY, undefined, cyRef.current);
+      createNode(modelX + offsetX, modelY + offsetY, undefined, cyRef.current);
     }
   };
 
