@@ -90,8 +90,16 @@ export default function GraphCanvas() {
         pressedElement = null;
       };
       
-      // Event: Tap on canvas
-      cy.on('tap', function(event) {
+      // Event: Tap on background (using cxttapstart instead of tap to ensure we get the right target)
+      cy.on('tapstart', function(event) {
+        if (event.target !== cy) {
+          // Only interested in background taps here
+          return;
+        }
+        
+        console.log('Canvas tap detected', event);
+        setStatusMessage('Canvas tapped');
+        
         if (sourceNode) {
           // Deselect source node if clicking empty space
           cy.getElementById(sourceNode).removeClass('source-node');
@@ -100,11 +108,10 @@ export default function GraphCanvas() {
           return;
         }
         
-        // If clicking on empty space, create a new node
-        if (event.target === cy) {
-          const position = event.position;
-          createNode(position.x, position.y, undefined, cy);
-        }
+        // Create a new node
+        const position = event.position || { x: 100, y: 100 };
+        console.log('Creating node at position', position);
+        createNode(position.x, position.y, undefined, cy);
       });
 
       // Event: Tap on node
