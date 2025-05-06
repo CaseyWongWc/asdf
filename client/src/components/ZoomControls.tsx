@@ -45,29 +45,24 @@ export default function ZoomControls({ cyRef }: ZoomControlsProps) {
   
   const handleAddNode = () => {
     if (cyRef.current) {
-      // Get the current viewport dimensions
-      const width = cyRef.current.width();
-      const height = cyRef.current.height();
-      
-      // Get current viewport center in rendered coordinates
-      const centerX = width / 2;
-      const centerY = height / 2;
-      
-      // Get current pan and zoom to convert to model coordinates
-      const pan = cyRef.current.pan();
-      const zoom = cyRef.current.zoom();
-      
-      // Convert to model coordinates
-      const modelX = (centerX - pan.x) / zoom;
-      const modelY = (centerY - pan.y) / zoom;
-      
-      // Add random offset to avoid stacking
-      const offsetX = (Math.random() - 0.5) * 100;
-      const offsetY = (Math.random() - 0.5) * 100;
-      
-      // Add a node at this position
-      const newNodeId = createNode(modelX + offsetX, modelY + offsetY, undefined, cyRef.current);
-      console.log(`Created node ${newNodeId} at position: ${modelX + offsetX}, ${modelY + offsetY}`);
+      try {
+        // Simplest approach - get center of the viewport and add node there
+        const centerX = 300;
+        const centerY = 200;
+        
+        // Add random offset to avoid stacking
+        const offsetX = Math.floor(Math.random() * 200) - 100;
+        const offsetY = Math.floor(Math.random() * 200) - 100;
+        
+        // Create a simple label
+        const label = `Node ${Date.now() % 1000}`;
+        
+        // Add a node at this position
+        const newNodeId = createNode(centerX + offsetX, centerY + offsetY, label, cyRef.current);
+        console.log(`Created node ${newNodeId} with label ${label} at position: ${centerX + offsetX}, ${centerY + offsetY}`);
+      } catch (error) {
+        console.error("Error adding node:", error);
+      }
     }
   };
 

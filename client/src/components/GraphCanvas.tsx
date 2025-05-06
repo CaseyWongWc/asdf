@@ -90,10 +90,23 @@ export default function GraphCanvas() {
         pressedElement = null;
       };
       
-      // Simple click handler for adding nodes
-      cy.on('click', function(event) {
-        // Only handle clicks on the background (not on nodes/edges)
+      // Add a default node on initialization just to make sure we have something on screen
+      setTimeout(() => {
+        console.log('Adding default node');
+        createNode(300, 200, "Node 1", cy);
+        
+        // Add a second node to show the layout
+        createNode(400, 200, "Node 2", cy);
+      }, 500);
+
+      // We'll try the cytoscape tap event which is more reliable than click
+      cy.on('tap', function(event) {
+        console.log('Canvas tap event:', event.target === cy);
+        
+        // Only handle taps on the background (not on nodes/edges)
         if (event.target === cy) {
+          console.log('Background tap detected', event.position);
+          
           // If a source node is selected, deselect it
           if (sourceNode) {
             cy.getElementById(sourceNode).removeClass('source-node');
@@ -102,14 +115,16 @@ export default function GraphCanvas() {
             return;
           }
           
-          // Get the position in model coordinates
-          const pos = event.position;
-          if (pos) {
-            // Add a node at this position with a simple label
-            const newLabel = `Node ${nodeIdCounter + 1}`;
-            createNode(pos.x, pos.y, newLabel, cy);
-            setStatusMessage(`Created ${newLabel}`);
-          }
+          // Hard-code a position if we don't get one from the event
+          const pos = event.position || { x: 100, y: 100 };
+          console.log('Using position for new node:', pos);
+          
+          // Add a node at this position with a simple label
+          const newLabel = `Node ${nodeIdCounter + 1}`;
+          const newNodeId = createNode(pos.x, pos.y, newLabel, cy);
+          console.log('Created node with ID:', newNodeId);
+          
+          setStatusMessage(`Created ${newLabel}`);
         }
       });
 
