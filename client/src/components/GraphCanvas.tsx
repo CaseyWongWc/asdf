@@ -3,9 +3,11 @@ import CytoscapeComponent from "react-cytoscapejs";
 import cytoscape from "cytoscape";
 import { GraphContext } from "@/contexts/GraphContext";
 import ZoomControls from "./ZoomControls";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function GraphCanvas() {
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const isMobile = useIsMobile();
   const { 
     setNodeCount, 
     setEdgeCount, 
@@ -39,7 +41,56 @@ export default function GraphCanvas() {
         createEdge("n1", "n2", 5, cy);
         cy.fit();
       }
+      
+      // Configure mobile-specific options
+      if (isMobile) {
+        cy.userZoomingEnabled(false); // Disable mousewheel/pinch zoom
+        // Optimize touch handling
+        cy.touchTapThreshold(8); // Increase tap threshold for better touch detection
+        cy.autoungrabify(false); // Allow nodes to be dragged
+        cy.autounselectify(false); // Allow elements to be selected by touch
+      }
 
+      // Helper function to handle long press on elements (for mobile context menu)
+      let pressTimer: number | null = null;
+      let pressedElement: any = null;
+      
+      const handleTouchStart = (event: any) => {
+        const target = event.target;
+        if (target === cy) return; // Ignore if tapping on background
+        
+        pressedElement = target;
+        pressTimer = window.setTimeout(() => {
+          // This is a long press - simulate right-click operation
+          if (pressedElement) {
+            const ele = pressedElement;
+            const type = ele.isNode() ? 'Node' : 'Edge';
+            const label = ele.isNode() 
+              ? ele.data('label') 
+              : `from ${cy.getElementById(ele.data('source')).data('label')} to ${cy.getElementById(ele.data('target')).data('label')}`;
+            
+            if (sourceNode && sourceNode === ele.id()) {
+              setSourceNode(null);
+            }
+            
+            ele.remove();
+            setNodeCount(cy.nodes().length);
+            setEdgeCount(cy.edges().length);
+            setStatusMessage(`${type} ${label} deleted`);
+            
+            pressedElement = null;
+          }
+        }, 750); // 750ms for long press
+      };
+      
+      const handleTouchEnd = () => {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+        pressedElement = null;
+      };
+      
       // Event: Tap on canvas
       cy.on('tap', function(event) {
         if (sourceNode) {
@@ -81,7 +132,7 @@ export default function GraphCanvas() {
         }
       });
 
-      // Event: Right-click on node or edge
+      // Event: Right-click on node or edge (desktop)
       cy.on('cxttap', 'node, edge', function(event) {
         const ele = event.target;
         const type = ele.isNode() ? 'Node' : 'Edge';
@@ -112,8 +163,23 @@ export default function GraphCanvas() {
       cy.on('tap', 'edge', function(event) {
         setEdgeEditId(event.target.id());
       });
+      
+      // Register touch handlers for mobile
+      if (isMobile) {
+        cy.on('touchstart', 'node, edge', handleTouchStart);
+        cy.on('touchend', handleTouchEnd);
+      }
+      
+      // Cleanup function
+      return () => {
+        cy.removeListener('touchstart', 'node, edge', handleTouchStart);
+        cy.removeListener('touchend', handleTouchEnd);
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+        }
+      };
     }
-  }, []);
+  }, [isMobile]);
 
   const cytoscapeStyle: cytoscape.Stylesheet[] = [
     {
