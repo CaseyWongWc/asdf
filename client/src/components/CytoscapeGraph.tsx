@@ -536,64 +536,55 @@ export default function CytoscapeGraph() {
         "text-outline-color": "#4299E1",
       },
     },
-    // Top text for nodes
+    // Node with topText - add label above node
     {
       selector: "node[topText]",
       style: {
-        "text-valign": "center", // Keep main label centered
         "label": function(ele: any) {
-          const label = ele.data("label") || "";
-          const topText = ele.data("topText");
-          if (topText && topText.length > 0) {
-            return label; // Main label stays the same
-          }
-          return label;
+          return ele.data("label") || ""; // Keep main label centered
         },
+        "text-valign": "center",
+        "text-halign": "center",
         "text-margin-y": 0
       }
     },
-    // Add top text style
+    
+    // Add top-text label
     {
       selector: "node[topText]",
       style: {
-        "text-margin-y": -5,
+        // Put top text in separate label field
+        "text-wrap": "wrap",
+        "text-max-width": 120,
         "text-valign": "top",
         "text-halign": "center",
         "font-size": isMobile ? "12px" : "10px",
         "color": "#E2E8F0",
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
-        "text-background-padding": 2,
         "text-background-shape": "roundrectangle",
-        "text-rotation": "autorotate",
-        "text-max-width": 100,
-        // Use source-label to position top text
-        "source-label": "data(topText)",
-        "source-text-offset": 0,
-        // Position appropriately above the node
-        "source-text-margin-y": -35
+        "text-background-padding": 2,
+        "text-margin-y": -30,
+        "content": "data(topText)",
       }
     },
-    // Add bottom text style
+    
+    // Node with bottomText - add label below node
     {
       selector: "node[bottomText]",
       style: {
-        "text-margin-y": 5,
+        "text-wrap": "wrap",
+        "text-max-width": 120,
         "text-valign": "bottom",
         "text-halign": "center",
         "font-size": isMobile ? "12px" : "10px",
-        "color": "#E2E8F0",
+        "color": "#E2E8F0", 
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
-        "text-background-padding": 2,
         "text-background-shape": "roundrectangle",
-        "text-rotation": "autorotate",
-        "text-max-width": 100,
-        // Use target-label to position bottom text
-        "target-label": "data(bottomText)",
-        "target-text-offset": 0,
-        // Position appropriately below the node
-        "target-text-margin-y": 35
+        "text-background-padding": 2,
+        "text-margin-y": 30,
+        "content": "data(bottomText)"
       }
     },
     // Basic edge style
@@ -960,7 +951,7 @@ export default function CytoscapeGraph() {
                   nodes.forEach(({ edges, count }) => {
                     const isBidirectional = count > 1;
 
-                    edges.forEach((edge, index) => {
+                    edges.forEach((edge: any, index: number) => {
                       if (isBidirectional) {
                         // Bidirectional edges are curved - use same direction curve for both
                         // This makes both edges curve in the same direction instead of opposite
