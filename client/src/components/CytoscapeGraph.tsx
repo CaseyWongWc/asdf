@@ -222,6 +222,9 @@ export default function CytoscapeGraph() {
         setNodeCount(cy.nodes().length);
         setEdgeCount(cy.edges().length);
 
+        // Apply Auto Smart styling to any initial edges
+        applyAutoSmartEdgeStyling();
+
         // Center the view on the new nodes
         cy.fit(cy.nodes(), 50); // 50px padding
       }, 500);
@@ -739,6 +742,7 @@ export default function CytoscapeGraph() {
     setSelectedNodeId,
     setEdgeColor,
     edgeDisplayStyle,
+    applyAutoSmartEdgeStyling, // Include the auto styling function
   ]);
 
   const cytoscapeStyle: any[] = [
@@ -1148,6 +1152,9 @@ export default function CytoscapeGraph() {
 
       // Apply all styles at once
       currentEdge.style(styleObj);
+      
+      // Apply Auto Smart styling for the entire graph after edge update
+      applyAutoSmartEdgeStyling();
 
       // Close the dialog
       setEditEdgeOpen(false);
@@ -1197,6 +1204,9 @@ export default function CytoscapeGraph() {
 
         // Update edge reference
         setCurrentEdge(newEdge);
+        
+        // Apply Auto Smart styling after edge reversal
+        applyAutoSmartEdgeStyling();
 
         setStatusMessage("Reversed edge direction");
       } else {
@@ -1213,6 +1223,9 @@ export default function CytoscapeGraph() {
       setEditEdgeOpen(false);
       setEdgeCount(cyRef.current.edges().length);
       setStatusMessage("Edge deleted");
+      
+      // Apply Auto Smart styling after edge deletion to update remaining edges
+      applyAutoSmartEdgeStyling();
     }
   };
 
