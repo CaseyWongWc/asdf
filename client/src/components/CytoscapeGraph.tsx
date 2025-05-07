@@ -1390,8 +1390,11 @@ export default function CytoscapeGraph() {
                       exportDate: new Date().toISOString()
                     };
                     
-                    // Convert to JSON and create download link
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(graphData, null, 2));
+                    // Convert to JSON string
+                    const jsonString = JSON.stringify(graphData, null, 2);
+                    
+                    // Convert to data URL for download
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonString);
                     
                     // Create download element
                     const downloadAnchorNode = document.createElement('a');
@@ -1401,15 +1404,85 @@ export default function CytoscapeGraph() {
                     downloadAnchorNode.click();
                     downloadAnchorNode.remove();
                     
-                    // Also show the export modal with copyable JSON
-                    setExportData(JSON.stringify(graphData, null, 2));
-                    setExportModalOpen(true);
-                    
                     setStatusMessage("Graph exported to JSON file");
                   }
                 }}
               >
-                <FileText className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> Export JSON
+                <FileText className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> Download JSON
+              </Button>
+              
+              <Button
+                size={isMobile ? "default" : "sm"}
+                variant="outline"
+                className={isMobile ? 'w-full justify-center' : ''}
+                onClick={() => {
+                  if (cyRef.current) {
+                    // Create a comprehensive export with all styling data
+                    const nodes = cyRef.current.nodes().map((node: any) => {
+                      // Get all data attributes
+                      const data = {...node.data()};
+                      
+                      // Get position
+                      const position = node.position();
+                      
+                      // Get computed styles
+                      const style = {
+                        backgroundColor: node.style('background-color'),
+                        borderColor: node.style('border-color'),
+                        borderWidth: node.style('border-width'),
+                        fontColor: node.style('color'),
+                        fontSize: node.style('font-size'),
+                        height: node.style('height'),
+                        width: node.style('width'),
+                      };
+                      
+                      return {
+                        id: node.id(),
+                        data,
+                        position,
+                        style
+                      };
+                    });
+                    
+                    const edges = cyRef.current.edges().map((edge: any) => {
+                      // Get all data attributes
+                      const data = {...edge.data()};
+                      
+                      // Get computed styles
+                      const style = {
+                        lineColor: edge.style('line-color'),
+                        lineStyle: edge.style('line-style'),
+                        curveStyle: edge.style('curve-style'),
+                        targetArrowShape: edge.style('target-arrow-shape'),
+                        targetArrowColor: edge.style('target-arrow-color'),
+                        controlPointDistances: edge.style('control-point-distances'),
+                        controlPointWeights: edge.style('control-point-weights'),
+                        width: edge.style('width'),
+                      };
+                      
+                      return {
+                        id: edge.id(),
+                        data,
+                        style
+                      };
+                    });
+                    
+                    const graphData = {
+                      nodes,
+                      edges,
+                      exportVersion: "1.0",
+                      exportDate: new Date().toISOString()
+                    };
+                    
+                    // Set the export data and open the modal with copyable JSON
+                    setExportData(JSON.stringify(graphData, null, 2));
+                    setExportModalOpen(true);
+                    
+                    setStatusMessage("Graph JSON ready to copy");
+                  }
+                }}
+              >
+                <Copy className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> Copy JSON
               </Button>
               
               <Button
