@@ -12,29 +12,44 @@ import { MobileProvider } from "../hooks/use-mobile";
 // Define implementation types for future extensibility
 type ImplementationType = "cytoscape"; // We can add "simple" back later if needed
 
-export default function Home() {
+// Create a component to wrap the content with GraphContext
+function HomeContent() {
   // We keep the state setup to maintain flexibility for future changes
   const [activeImpl, setActiveImpl] = useState<ImplementationType>("cytoscape");
+  const { mode } = useContext(GraphContext);
+  
+  return (
+    <div className="flex flex-col h-screen">
+      <Header />
+      
+      {/* Show instruction bar only in editor mode */}
+      {mode === 'editor' && <InstructionBar />}
+      
+      {/* Layout changes based on mode */}
+      <div className={`flex ${mode === 'algorithm' ? 'flex-row' : 'flex-col'} flex-1`}>
+        {/* Algorithm panel in algorithm mode */}
+        {mode === 'algorithm' && (
+          <div className="w-64 p-2 overflow-y-auto">
+            <AlgorithmPanel />
+          </div>
+        )}
+        
+        {/* Graph Content Area */}
+        <div className={`relative overflow-hidden ${mode === 'algorithm' ? 'flex-1' : 'flex-1'}`}>
+          <CytoscapeGraph />
+        </div>
+      </div>
+      
+      <StatusBar />
+    </div>
+  );
+}
 
+export default function Home() {
   return (
     <MobileProvider>
       <GraphProvider>
-        <div className="flex flex-col h-screen">
-          <Header />
-          <InstructionBar />
-          
-          {/* 
-            Note: Implementation selector is removed but the code structure
-            remains flexible to add it back later if needed
-          */}
-          
-          {/* Graph Content Area */}
-          <div className="flex-1 relative overflow-hidden">
-            <CytoscapeGraph />
-          </div>
-          
-          <StatusBar />
-        </div>
+        <HomeContent />
       </GraphProvider>
     </MobileProvider>
   );

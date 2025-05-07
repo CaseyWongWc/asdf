@@ -4,6 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 
+// Define interfaces for better type safety
+interface GraphNode {
+  id: string;
+  label: string;
+}
+
+interface CytoscapeNode {
+  id: () => string;
+  data: (key: string) => any;
+}
+
 // List of available algorithms
 const ALGORITHMS = [
   { id: 'bfs', name: 'Breadth-First Search', category: 'traversal' },
@@ -28,10 +39,12 @@ export default function AlgorithmPanel() {
     return null;
   }
   
+  // We already defined CytoscapeNode interface at the top of the file
+  
   // Get all available nodes from Cytoscape
-  const getNodes = () => {
+  const getNodes = (): GraphNode[] => {
     if (!window.cy) return [];
-    return window.cy.nodes().map((node: any) => ({
+    return window.cy.nodes().map((node: CytoscapeNode) => ({
       id: node.id(),
       label: node.data('label')
     }));
