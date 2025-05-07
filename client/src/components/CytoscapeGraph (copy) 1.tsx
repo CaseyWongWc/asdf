@@ -86,13 +86,12 @@ export default function CytoscapeGraph() {
         for (let i = 0; i < 3; i++) {
           const timestamp = Date.now() + i; // Add index to ensure uniqueness
           
-          // Create example nodes, with first node having top and bottom text
+          // Create example nodes to match the reference image
           let nodeData = { 
             id: `n${timestamp}`, 
             label: i === 0 ? 'NODE1' : `Node ${i+1}`,
-            // Add example top and bottom text to the first node
-            topText: i === 0 ? 'top text' : '',
-            bottomText: i === 0 ? 'bottom text' : ''
+            topText: '',
+            bottomText: ''
           };
           
           const node = {
@@ -645,47 +644,41 @@ export default function CytoscapeGraph() {
       },
     },
     
-    // Style for nodes with top text
+    // Style for nodes with top text - use a valid selector
     {
-      selector: 'node[topText]',
+      selector: "node[topText]",
       style: {
-        // Position text above the node using source-label
-        "source-label": function(ele: any) {
-          // Only show if not empty
-          const topText = ele.data('topText');
-          return topText && topText.length > 0 ? topText : '';
-        },
+        // We use source-label to position text above the node
+        "source-label": "data(topText)",
         "source-text-offset": 0,
         "source-text-margin-y": -35,
-        "source-text-opacity": 1,
-        "source-text-background-opacity": 0.7,
-        "source-text-background-color": "#EDF2F7",
-        "source-text-background-shape": "roundrectangle",
-        "source-text-background-padding": 3,
-        "source-text-color": "#1A202C", // Dark text for better readability
-        "source-text-wrap": "wrap"
+        "text-background-opacity": 0.7,
+        "text-background-color": "#4A5568",
+        "text-background-shape": "roundrectangle",
+        "text-background-padding": 3,
+        "font-size": isMobile ? "12px" : "10px",
+        "color": "#E2E8F0",
+        "text-wrap": "wrap",
+        "text-max-width": 150
       }
     },
     
-    // Style for nodes with bottom text
+    // Style for nodes with bottom text - use a valid selector
     {
-      selector: 'node[bottomText]',
+      selector: "node[bottomText]",
       style: {
-        // Position text below the node using target-label
-        "target-label": function(ele: any) {
-          // Only show if not empty
-          const bottomText = ele.data('bottomText');
-          return bottomText && bottomText.length > 0 ? bottomText : '';
-        },
+        // We use target-label to position text below the node
+        "target-label": "data(bottomText)",
         "target-text-offset": 0,
         "target-text-margin-y": 35,
-        "target-text-opacity": 1,
-        "target-text-background-opacity": 0.7,
-        "target-text-background-color": "#EDF2F7",
-        "target-text-background-shape": "roundrectangle",
-        "target-text-background-padding": 3,
-        "target-text-color": "#1A202C", // Dark text for better readability
-        "target-text-wrap": "wrap"
+        "text-background-opacity": 0.7,
+        "text-background-color": "#4A5568",
+        "text-background-shape": "roundrectangle",
+        "text-background-padding": 3,
+        "font-size": isMobile ? "12px" : "10px",
+        "color": "#E2E8F0",
+        "text-wrap": "wrap",
+        "text-max-width": 150
       }
     },
     // Basic edge style
