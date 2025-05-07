@@ -68,84 +68,49 @@ export default function CytoscapeGraph() {
         // Calculate center position of viewport
         const center = {
           x: cy.width() / 2,
-          y: cy.height() / 2
+          y: cy.height() / 2,
         };
-        
+
         // Add nodes in a triangle formation around the center
         // This creates a more balanced initial layout
         const nodeRadius = Math.min(cy.width(), cy.height()) * 0.15; // 15% of smallest dimension
-        
+
         // Calculate positions in a triangle around center
         const positions = [
-          { x: center.x - nodeRadius, y: center.y - nodeRadius/1.5 },
-          { x: center.x + nodeRadius, y: center.y - nodeRadius/1.5 },
-          { x: center.x, y: center.y + nodeRadius }
+          { x: center.x - nodeRadius, y: center.y - nodeRadius / 1.5 },
+          { x: center.x + nodeRadius, y: center.y - nodeRadius / 1.5 },
+          { x: center.x, y: center.y + nodeRadius },
         ];
-        
+
         // Create nodes with timestamp-based IDs to avoid collisions
         for (let i = 0; i < 3; i++) {
           const timestamp = Date.now() + i; // Add index to ensure uniqueness
-          
-          // Create example nodes, with first node having top and bottom text
-          let nodeData = { 
-            id: `n${timestamp}`, 
-            label: i === 0 ? 'NODE1' : `Node ${i+1}`,
-            // Add example top and bottom text to the first node
-            topText: i === 0 ? 'top text' : '',
-            bottomText: i === 0 ? 'bottom text' : ''
-          };
-          
           const node = {
             group: "nodes",
-            data: nodeData,
-            position: positions[i]
+            data: {
+              id: `n${timestamp}`,
+              label: `Node ${i + 1}`,
+            },
+            position: positions[i],
           };
-          
+
           // Add node with animation
           cy.add(node);
-          
+
           // Apply a subtle fade-in animation
           cy.getElementById(`n${timestamp}`)
-            .style('opacity', 0)
+            .style("opacity", 0)
             .animate({
               style: { opacity: 1 },
               duration: 300,
-              easing: 'ease-in-out'
+              easing: "ease-in-out",
             });
-            
-          // Create top text edge for the first node only
-          if (i === 0 && nodeData.topText && nodeData.topText.trim()) {
-            cy.add({
-              group: 'edges',
-              data: {
-                id: `top-text-n${timestamp}`,
-                source: `n${timestamp}`,
-                target: `n${timestamp}`,
-                label: nodeData.topText
-              },
-              classes: 'top-text-edge'
-            });
-          }
-          
-          // Create bottom text edge for the first node only
-          if (i === 0 && nodeData.bottomText && nodeData.bottomText.trim()) {
-            cy.add({
-              group: 'edges',
-              data: {
-                id: `bottom-text-n${timestamp}`,
-                source: `n${timestamp}`,
-                target: `n${timestamp}`,
-                label: nodeData.bottomText
-              },
-              classes: 'bottom-text-edge'
-            });
-          }
         }
 
         // Update node count in context
         setNodeCount(cy.nodes().length);
         setEdgeCount(cy.edges().length);
-        
+
         // Center the view on the new nodes
         cy.fit(cy.nodes(), 50); // 50px padding
       }, 500);
@@ -183,45 +148,45 @@ export default function CytoscapeGraph() {
 
             // Create new node at click position with improved ID generation
             const pos = event.position;
-            
+
             // Use the node count plus a timestamp suffix for better uniqueness
             // This prevents collisions if nodes are created/deleted rapidly
             const existingCount = cy.nodes().length;
             const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp for uniqueness
-            const nodeId = `n${existingCount+1}_${timestamp}`;
+            const nodeId = `n${existingCount + 1}_${timestamp}`;
             const nodeLabel = `Node ${existingCount + 1}`;
-            
+
             // First add the node with 0 opacity
             const newNode = cy.add({
               group: "nodes",
-              data: { 
-                id: nodeId, 
-                label: nodeLabel,
-                topText: '',  // Empty top text by default
-                bottomText: '' // Empty bottom text by default
-              },
+              data: { id: nodeId, label: nodeLabel },
               position: { x: pos.x, y: pos.y },
-              style: { 'opacity': 0 } // Start invisible for animation
+              style: { opacity: 0 }, // Start invisible for animation
             });
-            
+
             // Then animate it in with a gentle fade
-            cy.getElementById(nodeId)
-              .animate({
-                style: { 'opacity': 1 },
-                duration: 300,
-                easing: 'ease-in-out'
-              });
-            
+            cy.getElementById(nodeId).animate({
+              style: { opacity: 1 },
+              duration: 300,
+              easing: "ease-in-out",
+            });
+
             // Apply a subtle "pop" animation
             cy.getElementById(nodeId)
               .animate({
-                style: { 'height': isMobile ? 55 : 45, 'width': isMobile ? 55 : 45 },
-                duration: 100
+                style: {
+                  height: isMobile ? 55 : 45,
+                  width: isMobile ? 55 : 45,
+                },
+                duration: 100,
               })
               .delay(100)
               .animate({
-                style: { 'height': isMobile ? 50 : 40, 'width': isMobile ? 50 : 40 },
-                duration: 100
+                style: {
+                  height: isMobile ? 50 : 40,
+                  width: isMobile ? 50 : 40,
+                },
+                duration: 100,
               });
 
             setNodeCount(cy.nodes().length);
@@ -440,25 +405,26 @@ export default function CytoscapeGraph() {
                   // First set the edge with opacity 0
                   styleObj["opacity"] = 0;
                   newEdge.style(styleObj);
-                  
+
                   // Then animate it in with a gentle fade
                   newEdge.animate({
-                    style: { 'opacity': 1 },
+                    style: { opacity: 1 },
                     duration: 300,
-                    easing: 'ease-in-out'
+                    easing: "ease-in-out",
                   });
-                  
+
                   // Add a subtle width animation for emphasis
                   const finalWidth = isMobile ? 3 : 2;
-                  newEdge.animate({
-                    style: { 'width': finalWidth * 1.5 },
-                    duration: 150
-                  })
-                  .delay(150)
-                  .animate({
-                    style: { 'width': finalWidth },
-                    duration: 150
-                  });
+                  newEdge
+                    .animate({
+                      style: { width: finalWidth * 1.5 },
+                      duration: 150,
+                    })
+                    .delay(150)
+                    .animate({
+                      style: { width: finalWidth },
+                      duration: 150,
+                    });
 
                   console.log(
                     `Edge created successfully, new edge count: ${cy.edges().length}`,
@@ -509,7 +475,7 @@ export default function CytoscapeGraph() {
             // Determine the edge style
             const lineStyle = edge.style("line-style") || "solid";
             setEdgeStyle(lineStyle as "solid" | "dashed" | "dotted");
-            
+
             // Get edge color
             const color = edge.style("line-color") || "#64748B";
             setEdgeColor(color);
@@ -562,7 +528,7 @@ export default function CytoscapeGraph() {
             // Determine the edge style
             const lineStyle = ele.style("line-style") || "solid";
             setEdgeStyle(lineStyle as "solid" | "dashed" | "dotted");
-            
+
             // Get edge color
             const color = ele.style("line-color") || "#64748B";
             setEdgeColor(color);
@@ -645,97 +611,101 @@ export default function CytoscapeGraph() {
     {
       selector: "node",
       style: {
-        // Simple blue circle for the node
         "background-color": "#4299E1",
-        "width": isMobile ? "50px" : "40px",
-        "height": isMobile ? "50px" : "40px",
-        "border-width": "0",
-        "shape": "ellipse",
+        label: "data(label)",
+        "text-valign": "center",
+        "text-halign": "center",
+        color: "white",
+        "font-size": isMobile ? "14px" : "12px",
+        width: isMobile ? "50px" : "40px",
+        height: isMobile ? "50px" : "40px",
+        "text-outline-width": "1px",
+        "text-outline-color": "#4299E1",
       },
     },
-    // Add a separate style for the node label with the horizontal band
+    // Main node label (always visible, regardless of top/bottom text)
     {
       selector: "node",
       style: {
-        "label": "data(label)",
+        label: "data(label)",
         "text-valign": "center",
         "text-halign": "center",
-        "color": "white",
-        "font-weight": "bold",
-        "font-size": isMobile ? "14px" : "12px",
-        // Create a horizontal band across the middle of the node
-        "text-background-color": "#3182CE", // Slightly darker blue for the band
-        "text-background-opacity": 1,
-        "text-background-shape": "rectangle",
-        "text-background-padding": 2,
-        // Position the band in the middle of the node
         "text-margin-y": 0,
+        "font-weight": "bold",
+        "font-size": isMobile ? "16px" : "14px",
+        "text-outline-width": 2,
+        "text-outline-color": function (ele: any) {
+          return ele.style("background-color");
+        },
+        color: function (ele: any) {
+          return ele.style("color") || "#FFFFFF";
+        },
+        "text-background-opacity": 0,
       },
     },
-    
-    // Simpler approach for top text directly on node
+
+    // Add top-text label as overlay
     {
-      selector: 'node[topText]',
+      selector: "node[topText]",
       style: {
-        'label': function(ele: any) {
-          // Create a multi-line label with top text, main label, and bottom text
-          const topText = ele.data('topText');
-          const label = ele.data('label');
-          const bottomText = ele.data('bottomText');
-          
-          // Only return topText if it exists
-          if (topText && topText.length > 0) {
-            return topText;
-          }
-          return '';
-        },
-        'text-valign': 'top',
-        'text-margin-y': -30, // Position above node
-        'text-halign': 'center',
-        'color': '#1A202C',
-        'font-size': '12px',
-        'text-background-opacity': 0.7,
-        'text-background-color': '#EDF2F7'
-      }
+        "overlay-padding": 5,
+        "overlay-opacity": 0,
+        "overlay-color": "#000",
+      },
     },
-    
-    // Main node label - center position
+
+    // Top text with ::before pseudo element
     {
-      selector: 'node',
+      selector: "node[topText]",
       style: {
-        'text-valign': 'center',
-        'text-halign': 'center',
-      }
+        // Special top text styling using source-label
+        "source-label": "data(topText)",
+        "source-text-offset": 0,
+        "source-text-margin-y": -25,
+        "text-background-opacity": 0.7,
+        "text-background-color": "#4A5568",
+        "text-background-shape": "roundrectangle",
+        "text-background-padding": 2,
+        "source-text-rotation": "autorotate",
+        "font-size": isMobile ? "12px" : "10px",
+        color: "#E2E8F0",
+        "text-wrap": "wrap",
+        "text-max-width": 120,
+      },
     },
-    
-    // Style for bottom text using different approach - separate style for the content
+
+    // Bottom text with ::after pseudo element
     {
-      selector: 'node[bottomText]',
+      selector: "node[bottomText]",
       style: {
-        'background-color': function(ele: any) {
-          // Only mark nodes with non-empty bottom text
-          const bottomText = ele.data('bottomText');
-          if (bottomText && bottomText.length > 0) {
-            ele.scratch('_hasBottomText', true);  // Safer to use scratch than data
-          }
-          // Return unchanged background color
-          return ele.style('background-color');
-        }
-      }
+        // Special bottom text styling using target-label
+        "target-label": "data(bottomText)",
+        "target-text-offset": 0,
+        "target-text-margin-y": 25,
+        "text-background-opacity": 0.7,
+        "text-background-color": "#4A5568",
+        "text-background-shape": "roundrectangle",
+        "text-background-padding": 2,
+        "target-text-rotation": "autorotate",
+        "font-size": isMobile ? "12px" : "10px",
+        color: "#E2E8F0",
+        "text-wrap": "wrap",
+        "text-max-width": 120,
+      },
     },
     // Basic edge style
     {
       selector: "edge",
       style: {
         width: isMobile ? 3 : 2,
-        "line-color": function(ele: any) {
+        "line-color": function (ele: any) {
           // Use the edge's custom color if set, otherwise default
-          return ele.style('line-color') || "#64748B";
+          return ele.style("line-color") || "#64748B";
         },
         "target-arrow-shape": "triangle",
-        "target-arrow-color": function(ele: any) {
+        "target-arrow-color": function (ele: any) {
           // Match arrow color to line color for consistency
-          return ele.style('line-color') || "#64748B";
+          return ele.style("line-color") || "#64748B";
         },
         "arrow-scale": 1.5,
         "curve-style": "unbundled-bezier",
@@ -1274,7 +1244,7 @@ export default function CytoscapeGraph() {
                   </button>
                 )}
             </div>
-            
+
             {/* Edge Color Picker */}
             <div className="space-y-2">
               <label className="text-base font-medium">Line Color</label>
@@ -1287,15 +1257,15 @@ export default function CytoscapeGraph() {
                   { name: "Purple", value: "#8B5CF6" },
                   { name: "Orange", value: "#F97316" },
                   { name: "Yellow", value: "#FACC15" },
-                  { name: "Teal", value: "#14B8A6" }
+                  { name: "Teal", value: "#14B8A6" },
                 ].map((color) => (
                   <button
                     key={color.value}
                     type="button"
                     className={`h-8 rounded-md transition-all ${
-                      edgeColor === color.value 
-                        ? 'ring-2 ring-offset-1 ring-blue-500' 
-                        : 'hover:scale-105'
+                      edgeColor === color.value
+                        ? "ring-2 ring-offset-1 ring-blue-500"
+                        : "hover:scale-105"
                     }`}
                     style={{ backgroundColor: color.value }}
                     onClick={() => setEdgeColor(color.value)}
@@ -1304,15 +1274,15 @@ export default function CytoscapeGraph() {
                 ))}
               </div>
               <div className="flex items-center space-x-2">
-                <input 
-                  type="text" 
-                  value={edgeColor} 
-                  onChange={(e) => setEdgeColor(e.target.value)} 
+                <input
+                  type="text"
+                  value={edgeColor}
+                  onChange={(e) => setEdgeColor(e.target.value)}
                   className="flex-1 px-3 py-2 border rounded-md"
                   placeholder="#RRGGBB"
                 />
-                <div 
-                  className="w-8 h-8 border border-gray-300 rounded" 
+                <div
+                  className="w-8 h-8 border border-gray-300 rounded"
                   style={{ backgroundColor: edgeColor }}
                 />
               </div>

@@ -97,11 +97,11 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
       // Increment counter
       const nextId = nodeIdCounter + 1;
       setNodeIdCounter(nextId);
-      
+
       // Generate IDs and labels
       const id = `n${nextId}`;
       const nodeLabel = label || `Node ${nextId}`;
-      
+
       // Get Cytoscape instance
       const cyInstance = cy || window.cy;
       if (!cyInstance) {
@@ -109,35 +109,33 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
         setStatusMessage("Error: Graph not initialized");
         return id;
       }
-    
+
       // Simple validation
       const validX = isNaN(x) ? 100 : x; 
       const validY = isNaN(y) ? 100 : y;
-    
+
       // Create the new element data
       const newNode = {
         group: 'nodes',
         data: { 
           id, 
           label: nodeLabel,
-          description: `Node ${nextId}`,
-          topText: '',
-          bottomText: ''
+          description: `Node ${nextId}`
         },
         position: { x: validX, y: validY }
       };
-    
+
       // Explicitly add to the graph
       cyInstance.add(newNode);
       console.log(`Added node ${id} at (${validX}, ${validY})`, newNode);
-    
+
       // Force a render update
       cyInstance.forceRender();
-      
+
       // Update state
       setNodeCount(cyInstance.nodes().length);
       setStatusMessage(`Node ${nodeLabel} created`);
-      
+
       return id;
     } catch (error) {
       console.error("Error creating node:", error);
@@ -150,7 +148,7 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
     const nextId = edgeIdCounter + 1;
     setEdgeIdCounter(nextId);
     const id = `e${nextId}`;
-    
+
     const cyInstance = cy || window.cy;
     if (cyInstance) {
       // Check if we already have 2 edges in this direction
@@ -159,7 +157,7 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
         setStatusMessage('Two edges already exist for these two same nodes');
         return null;
       }
-      
+
       cyInstance.add({
         group: 'edges',
         data: {
@@ -169,11 +167,11 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
           weight: weight
         }
       });
-      
+
       setEdgeCount(cyInstance.edges().length);
       setStatusMessage(`Edge created with weight ${weight}`);
     }
-    
+
     return id;
   };
 
@@ -188,7 +186,7 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
       setStatusMessage('Graph reset');
     }
   };
-  
+
   // Function to check for the special title that triggers mode switch
   const checkForModeSwitch = (newTitle: string) => {
     if (newTitle.toUpperCase() === "THIS IS NOT A DRILL") {
@@ -208,40 +206,40 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
     }
 
     const cy = window.cy;
-    
+
     // Map to store the degree (number of edges) for each node
     const nodeDegrees: Record<string, number> = {};
-    
+
     // Initialize all nodes with 0 edges
     cy.nodes().forEach((node: any) => {
       nodeDegrees[node.id()] = 0;
     });
-    
+
     // Count edges for each node
     cy.edges().forEach((edge: any) => {
       const sourceId = edge.data('source');
       const targetId = edge.data('target');
-      
+
       // Increment edge count for source node
       nodeDegrees[sourceId] = (nodeDegrees[sourceId] || 0) + 1;
-      
+
       // If it's not a self-loop, increment target node too
       if (sourceId !== targetId) {
         nodeDegrees[targetId] = (nodeDegrees[targetId] || 0) + 1;
       }
     });
-    
+
     // Check if all nodes have an even number of edges (even parity)
     let allEven = true;
     let oddNodes: string[] = [];
-    
+
     Object.entries(nodeDegrees).forEach(([nodeId, degree]) => {
       if (degree % 2 !== 0) {
         allEven = false;
         oddNodes.push(nodeId);
       }
     });
-    
+
     if (allEven) {
       setStatusMessage('✓ All nodes have even parity (even number of edges)');
     } else {
@@ -250,10 +248,10 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
         const node = cy.getElementById(id);
         return node ? node.data('label') : id;
       });
-      
+
       setStatusMessage(`Odd parity: ${oddNodeLabels.join(', ')} have an odd number of edges`);
     }
-    
+
     return allEven;
   };
 

@@ -1,7 +1,7 @@
 import { useState, useContext } from "react";
 // Keep this import commented so we can easily restore it later if needed
 // import SimpleGraph from "../components/simple-graph";
-import CytoscapeGraph from "../components/CytoscapeGraph.new";
+import CytoscapeGraph from "../components/CytoscapeGraph";
 import Header from "../components/Header";
 import InstructionBar from "../components/InstructionBar";
 import StatusBar from "../components/StatusBar";
@@ -17,14 +17,14 @@ function HomeContent() {
   // We keep the state setup to maintain flexibility for future changes
   const [activeImpl, setActiveImpl] = useState<ImplementationType>("cytoscape");
   const { mode } = useContext(GraphContext);
-  
+
   return (
     <div className="flex flex-col h-screen">
       <Header />
-      
+
       {/* Show instruction bar only in editor mode */}
       {mode === 'editor' && <InstructionBar />}
-      
+
       {/* Layout changes based on mode */}
       <div className={`flex ${mode === 'algorithm' ? 'flex-row' : 'flex-col'} flex-1`}>
         {/* Algorithm panel in algorithm mode */}
@@ -33,13 +33,13 @@ function HomeContent() {
             <AlgorithmPanel />
           </div>
         )}
-        
+
         {/* Graph Content Area */}
         <div className={`relative overflow-hidden ${mode === 'algorithm' ? 'flex-1' : 'flex-1'}`}>
           <CytoscapeGraph />
         </div>
       </div>
-      
+
       <StatusBar />
     </div>
   );
