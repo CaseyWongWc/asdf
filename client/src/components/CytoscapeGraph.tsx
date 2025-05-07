@@ -164,6 +164,11 @@ export default function CytoscapeGraph() {
             
             // Check if the edge has an arrow (is directed)
             setIsDirected(edge.style('target-arrow-shape') !== 'none');
+            
+            // Determine the edge style
+            const lineStyle = edge.style('line-style') || 'solid';
+            setEdgeStyle(lineStyle as 'solid' | 'dashed' | 'dotted');
+            
             setEditEdgeOpen(true);
           }
         });
@@ -196,7 +201,7 @@ export default function CytoscapeGraph() {
         cy.removeAllListeners(); // Remove all registered event listeners
       };
     }
-  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setIsDirected, setEditEdgeOpen, setHasWeight]);
+  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -267,25 +272,32 @@ export default function CytoscapeGraph() {
       currentEdge.data('weight', hasWeight ? edgeWeight : null);
       currentEdge.data('label', edgeLabel);
       
-      // Update edge style based on directed status
+      // Create style object with line style and direction
+      const styleObj: any = {
+        'line-style': edgeStyle,
+      };
+      
+      // Add arrow if the edge is directed
       if (isDirected) {
-        currentEdge.style({
-          'target-arrow-shape': 'triangle',
-          'target-arrow-color': '#64748B'
-        });
+        styleObj['target-arrow-shape'] = 'triangle';
+        styleObj['target-arrow-color'] = '#64748B';
       } else {
-        currentEdge.style({
-          'target-arrow-shape': 'none'
-        });
+        styleObj['target-arrow-shape'] = 'none';
       }
+      
+      // Apply all styles at once
+      currentEdge.style(styleObj);
       
       setEditEdgeOpen(false);
       
+      // Get style name for message
+      const styleName = edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1);
+      
       // Show appropriate status message
       if (hasWeight) {
-        setStatusMessage(`Edge updated with weight ${edgeWeight}`);
+        setStatusMessage(`Edge updated with ${styleName} style, weight: ${edgeWeight}`);
       } else {
-        setStatusMessage(`Edge updated as weightless`);
+        setStatusMessage(`Edge updated with ${styleName} style, weightless`);
       }
     }
   };
@@ -300,6 +312,9 @@ export default function CytoscapeGraph() {
       const edgeId = currentEdge.id();
       const label = currentEdge.data('label');
       const weight = currentEdge.data('weight');
+      
+      // Store the current styling
+      const currentLineStyle = currentEdge.style('line-style');
       
       // Remove the old edge
       currentEdge.remove();
@@ -317,12 +332,18 @@ export default function CytoscapeGraph() {
       });
       
       // Apply the same styling
+      const styleObj: any = {
+        'line-style': currentLineStyle || edgeStyle,
+      };
+      
       if (isDirected) {
-        newEdge.style({
-          'target-arrow-shape': 'triangle',
-          'target-arrow-color': '#64748B'
-        });
+        styleObj['target-arrow-shape'] = 'triangle';
+        styleObj['target-arrow-color'] = '#64748B';
+      } else {
+        styleObj['target-arrow-shape'] = 'none';
       }
+      
+      newEdge.style(styleObj);
       
       setCurrentEdge(newEdge);
       
@@ -435,6 +456,33 @@ export default function CytoscapeGraph() {
                   <label htmlFor="directed-toggle" className="text-base font-medium text-gray-700">
                     Directed Edge (show arrow)
                   </label>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-base font-medium text-gray-700 mb-2">Line Style</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEdgeStyle('solid')}
+                      className={`p-3 border ${edgeStyle === 'solid' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
+                    >
+                      Solid
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEdgeStyle('dashed')}
+                      className={`p-3 border ${edgeStyle === 'dashed' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
+                    >
+                      Dashed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEdgeStyle('dotted')}
+                      className={`p-3 border ${edgeStyle === 'dotted' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
+                    >
+                      Dotted
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mb-4">
