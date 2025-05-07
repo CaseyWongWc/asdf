@@ -152,8 +152,15 @@ export default function CytoscapeGraph() {
           // Only handle edge taps if no source node is selected
           if (!sourceNode) {
             setCurrentEdge(edge);
-            setEdgeWeight(edge.data('weight') || 1);
+            
+            // Check if the edge has a weight
+            const weight = edge.data('weight');
+            const isWeightless = weight === null || weight === undefined;
+            
+            setEdgeWeight(isWeightless ? 1 : weight);
+            setHasWeight(!isWeightless);
             setEdgeLabel(edge.data('label') || '');
+            
             // Check if the edge has an arrow (is directed)
             setIsDirected(edge.style('target-arrow-shape') !== 'none');
             setEditEdgeOpen(true);
@@ -188,7 +195,7 @@ export default function CytoscapeGraph() {
         cy.removeAllListeners(); // Remove all registered event listeners
       };
     }
-  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setIsDirected, setEditEdgeOpen]);
+  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setIsDirected, setEditEdgeOpen, setHasWeight]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -255,8 +262,8 @@ export default function CytoscapeGraph() {
   // Handle edge update
   const updateEdge = () => {
     if (currentEdge && cyRef.current) {
-      // Update edge data
-      currentEdge.data('weight', edgeWeight);
+      // Update edge data based on whether it has weight or not
+      currentEdge.data('weight', hasWeight ? edgeWeight : null);
       currentEdge.data('label', edgeLabel);
       
       // Update edge style based on directed status
@@ -272,7 +279,13 @@ export default function CytoscapeGraph() {
       }
       
       setEditEdgeOpen(false);
-      setStatusMessage(`Edge updated`);
+      
+      // Show appropriate status message
+      if (hasWeight) {
+        setStatusMessage(`Edge updated with weight ${edgeWeight}`);
+      } else {
+        setStatusMessage(`Edge updated as weightless`);
+      }
     }
   };
   
