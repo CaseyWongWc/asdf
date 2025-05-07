@@ -986,7 +986,7 @@ export default function CytoscapeGraph() {
         "text-halign": "center",
         "text-outline-width": "1px",
         "text-outline-color": "white",
-        "text-background-opacity": 0.7,
+        "text-background-opacity": 0, // Make label background fully transparent
         "text-background-color": "#ffffff",
         "text-background-padding": 2,
       },
@@ -1006,7 +1006,7 @@ export default function CytoscapeGraph() {
 
           return `${weight}${multiEdgeLabel}`;
         },
-        "text-background-opacity": 1,
+        "text-background-opacity": 0, // Make label background fully transparent
         "text-background-color": "#ffffff",
         "text-background-padding": 3,
       },
@@ -1034,6 +1034,9 @@ export default function CytoscapeGraph() {
         "source-label": "data(description)",
         "source-text-offset": 15,
         "source-text-margin-y": -10,
+        "source-text-background-opacity": 0, // Make description background transparent
+        "source-text-outline-width": 1, // Add outline for better visibility
+        "source-text-outline-color": "white",
       },
     },
     // Edge with description for undirected edges - show at both source and target nodes
@@ -1043,9 +1046,15 @@ export default function CytoscapeGraph() {
         "source-label": "data(description)",
         "source-text-offset": 15,
         "source-text-margin-y": -10,
+        "source-text-background-opacity": 0, // Make description background transparent
+        "source-text-outline-width": 1, // Add outline for better visibility
+        "source-text-outline-color": "white",
         "target-label": "data(description)",
         "target-text-offset": 15,
         "target-text-margin-y": 10,
+        "target-text-background-opacity": 0, // Make description background transparent
+        "target-text-outline-width": 1, // Add outline for better visibility
+        "target-text-outline-color": "white",
       },
     },
     // Source node style
@@ -1268,55 +1277,111 @@ export default function CytoscapeGraph() {
         layout={{ name: "preset" }} // Use preset layout to respect node positions
       />
 
-      {/* Selection Mode Toggle */}
+      {/* Top Controls Bar */}
       {mode === "editor" && (
-        <div className="absolute top-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex items-center gap-2 border border-gray-200">
-          <span className="text-sm font-medium whitespace-nowrap">
-            Multi-Select:
-          </span>
-          <Button
-            size="sm"
-            variant={selectionMode ? "default" : "outline"}
-            className={selectionMode ? "bg-purple-600 hover:bg-purple-700" : ""}
-            onClick={() => {
-              const newMode = !selectionMode;
-              setSelectionMode(newMode);
-              setStatusMessage(newMode ? 'Multi-select mode enabled' : 'Multi-select mode disabled');
-              
-              // Clear selection when disabling selection mode
-              if (!newMode && cyRef.current) {
-                selectedNodes.forEach(node => {
-                  node.removeClass('selected-node');
-                });
-                setSelectedNodes([]);
-              }
-            }}
-          >
-            {selectionMode ? "Selection ON" : "Selection OFF"}
-          </Button>
+        <div className={`absolute top-4 right-4 bg-white ${isMobile ? 'p-3' : 'p-2'} rounded-lg shadow-md z-10 flex ${isMobile ? 'flex-col' : 'items-center'} gap-2 border border-gray-200`}>
+          {/* Multi-select Controls */}
+          <div className={`flex ${isMobile ? 'w-full justify-between' : 'items-center'} gap-2`}>
+            <span className={`${isMobile ? 'text-base' : 'text-sm'} font-medium whitespace-nowrap`}>
+              Multi-Select:
+            </span>
+            <Button
+              size={isMobile ? "default" : "sm"}
+              variant={selectionMode ? "default" : "outline"}
+              className={`${selectionMode ? "bg-purple-600 hover:bg-purple-700" : ""} ${isMobile ? 'px-4' : ''}`}
+              onClick={() => {
+                const newMode = !selectionMode;
+                setSelectionMode(newMode);
+                setStatusMessage(newMode ? 'Multi-select mode enabled' : 'Multi-select mode disabled');
+                
+                // Clear selection when disabling selection mode
+                if (!newMode && cyRef.current) {
+                  selectedNodes.forEach(node => {
+                    node.removeClass('selected-node');
+                  });
+                  setSelectedNodes([]);
+                }
+              }}
+            >
+              {selectionMode ? "Selection ON" : "Selection OFF"}
+            </Button>
+          </div>
+          
           {selectionMode && selectedNodes.length > 0 && (
             <Button 
-              size="sm" 
+              size={isMobile ? "default" : "sm"}
               variant="default"
-              className="ml-2 bg-purple-600 hover:bg-purple-700"
+              className={`${isMobile ? 'w-full' : 'ml-2'} bg-purple-600 hover:bg-purple-700`}
               onClick={() => setMultiEditModalOpen(true)}
             >
               Edit {selectedNodes.length} selected
             </Button>
           )}
+          
+          {/* Export JSON Button */}
+          <div className={`${isMobile ? 'w-full pt-2 mt-2 border-t' : 'ml-3 pl-3 border-l'} border-gray-300`}>
+            <Button
+              size={isMobile ? "default" : "sm"}
+              variant="outline"
+              className={isMobile ? 'w-full justify-center' : ''}
+              onClick={() => {
+                if (cyRef.current) {
+                  // Create a simplified export with just the essential data
+                  const nodes = cyRef.current.nodes().map((node: any) => ({
+                    id: node.id(),
+                    label: node.data('label'),
+                    topText: node.data('topText') || '',
+                    bottomText: node.data('bottomText') || '',
+                    position: node.position(),
+                  }));
+                  
+                  const edges = cyRef.current.edges().map((edge: any) => ({
+                    id: edge.id(),
+                    source: edge.data('source'),
+                    target: edge.data('target'),
+                    label: edge.data('label') || '',
+                    weight: edge.data('weight') || null,
+                    description: edge.data('description') || '',
+                    isDirected: edge.data('targetArrow') === 'triangle',
+                  }));
+                  
+                  const graphData = {
+                    nodes,
+                    edges
+                  };
+                  
+                  // Convert to JSON and create download link
+                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(graphData, null, 2));
+                  
+                  // Create download element
+                  const downloadAnchorNode = document.createElement('a');
+                  downloadAnchorNode.setAttribute("href", dataStr);
+                  downloadAnchorNode.setAttribute("download", "graph_export.json");
+                  document.body.appendChild(downloadAnchorNode); // required for firefox
+                  downloadAnchorNode.click();
+                  downloadAnchorNode.remove();
+                  
+                  setStatusMessage("Graph exported to JSON file");
+                }
+              }}
+            >
+              <FileText className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> Export JSON
+            </Button>
+          </div>
         </div>
       )}
       
       {/* Edge Style Toggle Control */}
       {mode === "editor" && (
-        <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex flex-col items-start gap-2 border border-gray-200">
-          <span className="text-sm font-medium whitespace-nowrap">
+        <div className={`absolute bottom-4 right-4 bg-white ${isMobile ? 'p-3' : 'p-2'} rounded-lg shadow-md z-10 flex flex-col items-start gap-2 border border-gray-200`}>
+          <span className={`${isMobile ? 'text-base' : 'text-sm'} font-medium whitespace-nowrap`}>
             Edge Style:
           </span>
-          <div className="flex space-x-2">
+          <div className={`flex ${isMobile ? 'w-full' : ''} space-x-2`}>
             <Button
-              size="sm"
+              size={isMobile ? "default" : "sm"}
               variant={edgeDisplayStyle === "curved" ? "default" : "outline"}
+              className={isMobile ? 'flex-1 justify-center' : ''}
               onClick={() => {
                 setEdgeDisplayStyle("curved");
                 setStatusMessage(
@@ -1375,8 +1440,9 @@ export default function CytoscapeGraph() {
               Auto (Smart)
             </Button>
             <Button
-              size="sm"
+              size={isMobile ? "default" : "sm"}
               variant={edgeDisplayStyle === "straight" ? "default" : "outline"}
+              className={isMobile ? 'flex-1 justify-center' : ''}
               onClick={() => {
                 setEdgeDisplayStyle("straight");
                 setStatusMessage("Using all straight edges");
