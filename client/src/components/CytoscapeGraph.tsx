@@ -4,6 +4,7 @@ import CytoscapeComponent from 'react-cytoscapejs';
 import { useIsMobile } from '../hooks/use-mobile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 import NodeStyleModal from "./NodeStyleModal";
 
 export default function CytoscapeGraph() {
@@ -131,6 +132,9 @@ export default function CytoscapeGraph() {
           const nodeId = node.id();
           const clickTime = new Date().getTime();
           
+          // Debug - log the click
+          console.log(`Node clicked: ${nodeId}, source node: ${sourceNode}`);
+          
           // Check if this is a double-click on the same node
           if (lastClickNodeId === nodeId && clickTime - lastClickTime < doubleClickDelay) {
             // Handle as double-click - open styling modal
@@ -155,13 +159,23 @@ export default function CytoscapeGraph() {
           lastClickTime = clickTime;
           lastClickNodeId = nodeId;
           
-          // Continue with regular node click handling
-          
+          // Continue with regular node click handling for edge creation or node selection
           if (sourceNode) {
+            // We already have a source node selected, so create an edge
+            const sourceNodeElement = cy.getElementById(sourceNode);
+            if (!sourceNodeElement) {
+              console.error(`Source node ${sourceNode} not found`);
+              setSourceNode(null);
+              return;
+            }
+            
             const edgeId = `e${Date.now()}`;
-            const isSelfLoop = sourceNode === node.id();
+            const isSelfLoop = sourceNode === nodeId;
             
             if (isSelfLoop) {
+              // Creating a self-loop
+              console.log(`Creating self-loop on node ${nodeId}`);
+              
               // Check if a self-loop already exists
               const existingSelfLoop = cy.edges().filter(
                 (edge: any) => (
@@ -171,13 +185,13 @@ export default function CytoscapeGraph() {
               
               if (existingSelfLoop.length > 0) {
                 setStatusMessage('Self-loop already exists on this node');
-                node.removeClass('source-node');
+                sourceNodeElement.removeClass('source-node');
                 setSourceNode(null);
                 return;
               }
               
               // Create a self-loop with JFLAP-like styling
-              cy.add({
+              const selfLoopEdge = cy.add({
                 group: 'edges',
                 data: { 
                   id: edgeId, 
@@ -194,7 +208,10 @@ export default function CytoscapeGraph() {
                   loopDirection: '-45deg', // JFLAP-like loop start angle
                   loopSweep: '315deg',     // JFLAP-like loop arc size
                 }
-              }).style({
+              });
+              
+              // Apply styles to the self-loop edge
+              selfLoopEdge.style({
                 'target-arrow-shape': 'none',
                 'line-style': 'solid',
                 'curve-style': 'bezier',
@@ -203,62 +220,70 @@ export default function CytoscapeGraph() {
                 'control-point-weight': 0.7,   // Weight for curve position
               });
               
+              console.log(`Self-loop created, new edge count: ${cy.edges().length}`);
               setEdgeCount(cy.edges().length);
               setStatusMessage(`Created self-loop with weight 1`);
-              
-              // Deselect the source node after creating the self-loop
-              node.removeClass('source-node');
-              setSourceNode(null);
             } else {
+              // Creating an edge between two different nodes
+              console.log(`Creating edge from ${sourceNode} to ${nodeId}`);
+              
               // Check if an edge already exists between these nodes
               const existingEdge = cy.edges().filter(
                 (edge: any) => (
-                  (edge.data('source') === sourceNode && edge.data('target') === node.id()) ||
-                  (edge.data('source') === node.id() && edge.data('target') === sourceNode)
+                  (edge.data('source') === sourceNode && edge.data('target') === nodeId) ||
+                  (edge.data('source') === nodeId && edge.data('target') === sourceNode)
                 )
               );
               
               if (existingEdge.length > 0) {
+                console.log('Edge already exists between these nodes');
                 setStatusMessage('Edge already exists between these nodes');
               } else {
-                // Add a new edge (undirected by default)
-                console.log(`Creating edge from ${sourceNode} to ${node.id()}`);
-                
-                // Use directed arrow style for better clarity in showing the edges
-                cy.add({
-                  group: 'edges',
-                  data: { 
-                    id: edgeId, 
-                    source: sourceNode, 
-                    target: node.id(),
-                    weight: 1,
-                    label: '',
-                    description: '',
-                    descriptionPosition: 'above',
-                    curveStyle: 'bezier',
-                    curvature: 40,
-                    targetArrow: 'triangle' // Default to directed edges for clearer visualization
-                  }
-                }).style({
-                  'target-arrow-shape': 'triangle',
-                  'target-arrow-color': '#64748B',
-                  'line-style': 'solid',
-                  'curve-style': 'bezier',
-                  'control-point-step-size': 40
-                });
-                
-                setEdgeCount(cy.edges().length);
-                setStatusMessage(`Created directed edge with weight 1`);
+                // Add a new edge with directed style
+                try {
+                  const newEdge = cy.add({
+                    group: 'edges',
+                    data: { 
+                      id: edgeId, 
+                      source: sourceNode, 
+                      target: nodeId,
+                      weight: 1,
+                      label: '',
+                      description: '',
+                      descriptionPosition: 'above',
+                      curveStyle: 'bezier',
+                      curvature: 40,
+                      targetArrow: 'triangle'
+                    }
+                  });
+                  
+                  // Apply styles to the new edge
+                  newEdge.style({
+                    'target-arrow-shape': 'triangle',
+                    'target-arrow-color': '#64748B',
+                    'line-style': 'solid',
+                    'curve-style': 'bezier',
+                    'control-point-step-size': 40
+                  });
+                  
+                  console.log(`Edge created successfully, new edge count: ${cy.edges().length}`);
+                  setEdgeCount(cy.edges().length);
+                  setStatusMessage(`Created directed edge with weight 1`);
+                } catch (error) {
+                  console.error('Error creating edge:', error);
+                  setStatusMessage('Error creating edge');
+                }
               }
-              
-              // Deselect the source node
-              cy.getElementById(sourceNode).removeClass('source-node');
-              setSourceNode(null);
             }
+            
+            // Deselect the source node in all cases
+            sourceNodeElement.removeClass('source-node');
+            setSourceNode(null);
           } else {
-            // Select as source node
+            // No source node selected yet, so select this node as the source
+            console.log(`Selecting node ${nodeId} as source`);
             node.addClass('source-node');
-            setSourceNode(node.id());
+            setSourceNode(nodeId);
             setStatusMessage(`Selected "${node.data('label')}" as source node`);
           }
         });
@@ -570,347 +595,308 @@ export default function CytoscapeGraph() {
       // Apply all styles at once
       currentEdge.style(styleObj);
       
+      // Close the dialog
       setEditEdgeOpen(false);
       
-      // Get style name for message
-      const styleName = edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1);
-      
-      // Prepare message about description
-      let descMsg = '';
-      if (edgeDescription) {
-        descMsg = `, description ${descriptionPosition === 'above' ? 'above' : 'below'}`;
-      }
-      
-      // Show appropriate status message
+      // Update status message based on whether the edge has a weight or not
       if (hasWeight) {
-        setStatusMessage(`Edge updated with ${styleName} style${descMsg}, weight: ${edgeWeight}`);
+        setStatusMessage(`Updated edge with weight ${edgeWeight}`);
       } else {
-        setStatusMessage(`Edge updated with ${styleName} style${descMsg}, weightless`);
+        setStatusMessage('Updated edge without weight');
       }
     }
   };
-  
+
   // Handle reversing the edge direction
   const reverseEdge = () => {
     if (currentEdge && cyRef.current) {
       const sourceId = currentEdge.data('source');
       const targetId = currentEdge.data('target');
       
-      // Store the edge properties
-      const edgeId = currentEdge.id();
-      const label = currentEdge.data('label');
-      const weight = currentEdge.data('weight');
-      const description = currentEdge.data('description');
-      const descPosition = currentEdge.data('descriptionPosition');
-      const curveStyle = currentEdge.data('curveStyle') || edgeCurve;
-      const curvature = currentEdge.data('curvature') || edgeCurvature;
-      const targetArrow = isDirected ? 'triangle' : 'none';
-      
-      // Store the current styling
-      const currentLineStyle = currentEdge.style('line-style');
-      
-      // Remove the old edge
-      currentEdge.remove();
-      
-      // Create a new edge with reversed direction
-      const newEdge = cyRef.current.add({
-        group: 'edges',
-        data: {
-          id: edgeId,
+      // Only reverse if it's not a self-loop
+      if (sourceId !== targetId) {
+        // Store current edge data
+        const edgeData = {
+          ...currentEdge.data(),
           source: targetId,
-          target: sourceId,
-          weight: weight,
-          label: label,
-          description: description,
-          descriptionPosition: descPosition,
-          curveStyle: curveStyle,
-          curvature: curvature,
-          targetArrow: targetArrow
-        }
-      });
-      
-      // Apply the same styling
-      const styleObj: any = {
-        'line-style': currentLineStyle || edgeStyle,
-        'curve-style': curveStyle,
-        'control-point-step-size': curvature
-      };
-      
-      if (isDirected) {
-        styleObj['target-arrow-shape'] = 'triangle';
-        styleObj['target-arrow-color'] = '#64748B';
-        newEdge.data('targetArrow', 'triangle'); // Add data attribute for selector
+          target: sourceId
+        };
+        
+        // Remove the current edge
+        currentEdge.remove();
+        
+        // Add a new edge with reversed direction
+        const newEdge = cyRef.current.add({
+          group: 'edges',
+          data: edgeData
+        });
+        
+        // Apply the same styles to the new edge
+        newEdge.style({
+          'line-style': edgeStyle,
+          'curve-style': edgeCurve,
+          'control-point-step-size': edgeCurvature,
+          'target-arrow-shape': isDirected ? 'triangle' : 'none',
+          'target-arrow-color': '#64748B'
+        });
+        
+        // Update edge reference
+        setCurrentEdge(newEdge);
+        
+        setStatusMessage('Reversed edge direction');
       } else {
-        styleObj['target-arrow-shape'] = 'none';
-        newEdge.data('targetArrow', 'none'); // Add data attribute for selector
+        setStatusMessage('Cannot reverse a self-loop');
       }
-      
-      newEdge.style(styleObj);
-      
-      setCurrentEdge(newEdge);
-      
-      // Update the dialog's from/to fields by forcing a re-render
-      const fromLabel = cyRef.current.getElementById(targetId).data('label');
-      const toLabel = cyRef.current.getElementById(sourceId).data('label');
-      setStatusMessage(`Edge direction reversed: now ${fromLabel} → ${toLabel}`);
     }
   };
 
-  // Handle edge deletion from dialog
+  // Handle edge deletion
   const deleteEdge = () => {
     if (currentEdge && cyRef.current) {
-      const sourceLabel = cyRef.current.getElementById(currentEdge.data('source')).data('label');
-      const targetLabel = cyRef.current.getElementById(currentEdge.data('target')).data('label');
-      
-      currentEdge.remove();
+      cyRef.current.remove(currentEdge);
+      setCurrentEdge(null);
       setEditEdgeOpen(false);
       setEdgeCount(cyRef.current.edges().length);
-      setStatusMessage(`Edge between ${sourceLabel} and ${targetLabel} deleted`);
+      setStatusMessage('Edge deleted');
     }
   };
 
   return (
-    <>
+    <div className="w-full h-full relative">
       <CytoscapeComponent
-        elements={[]}
+        cy={(cy) => { cyRef.current = cy; }}
+        elements={[]} // Start with empty elements, we'll add them programmatically
         style={{ width: '100%', height: '100%' }}
         stylesheet={cytoscapeStyle}
-        layout={{ name: 'preset' }}
-        cy={(cy) => { cyRef.current = cy; }}
-        // Use default wheel sensitivity to avoid warnings
+        userZoomingEnabled={true}
+        userPanningEnabled={true}
+        boxSelectionEnabled={false}
+        wheelSensitivity={0.2} // Reduce wheel sensitivity
+        minZoom={0.1} // Allow zooming out far
+        maxZoom={2} // Limit how far in users can zoom
+        autoungrabify={false} // Allow nodes to be moved
+        layout={{ name: 'preset' }} // Use preset layout to respect node positions
       />
 
       {/* Edge Edit Dialog */}
       <Dialog open={editEdgeOpen} onOpenChange={setEditEdgeOpen}>
-        <DialogContent className="sm:max-w-[400px] p-0 bg-white rounded-md overflow-hidden max-h-[90vh] overflow-y-auto">
-          <div className="p-4 md:p-6">
-            <DialogHeader className="mb-4">
-              <DialogTitle className="text-lg font-semibold">Edit Edge</DialogTitle>
-            </DialogHeader>
-            
-            {currentEdge && (
-              <div>
-                <div className="mb-4">
-                  <label className="block text-base font-medium text-gray-700 mb-2">From</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 border border-gray-300 rounded-md bg-gray-100 text-base"
-                    value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('source')).data('label') : ''}
-                    disabled 
+        <DialogContent className="sm:max-w-[500px] p-0 bg-white rounded-lg overflow-hidden">
+          <DialogHeader className="p-4 md:p-6 border-b">
+            <DialogTitle className="text-xl font-semibold">Edit Edge</DialogTitle>
+          </DialogHeader>
+          
+          <div className="p-4 md:p-6 space-y-4">
+            {/* Weight controls */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-base font-medium">Edge Weight</label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasWeight}
+                    onChange={(e) => setHasWeight(e.target.checked)}
+                    className="sr-only peer"
                   />
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-base font-medium text-gray-700 mb-2">To</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 border border-gray-300 rounded-md bg-gray-100 text-base"
-                    value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('target')).data('label') : ''}
-                    disabled 
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-base font-medium text-gray-700 mb-2">Label</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 border border-gray-300 rounded-md text-base"
-                    value={edgeLabel} 
-                    onChange={(e) => setEdgeLabel(e.target.value)} 
-                    placeholder="Optional edge label"
-                    autoFocus
-                  />
-                </div>
-                
-                <div className="mb-4 flex items-center py-1">
-                  <input 
-                    type="checkbox" 
-                    id="weightless-toggle"
-                    className="mr-3 h-5 w-5 accent-blue-600" 
-                    checked={!hasWeight}
-                    onChange={(e) => setHasWeight(!e.target.checked)}
-                  />
-                  <label htmlFor="weightless-toggle" className="text-base font-medium text-gray-700">
-                    Weightless Edge (no number)
-                  </label>
-                </div>
-                
-                <div className={`mb-4 ${!hasWeight ? 'opacity-50' : ''}`}>
-                  <label className="block text-base font-medium text-gray-700 mb-2">Weight</label>
-                  <input 
-                    type="number" 
-                    className="w-full p-3 border border-gray-300 rounded-md text-base"
-                    value={edgeWeight} 
-                    onChange={(e) => setEdgeWeight(Number(e.target.value))} 
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <span className="ml-2 text-sm font-medium">
+                    {hasWeight ? 'Enabled' : 'Disabled'}
+                  </span>
+                </label>
+              </div>
+              
+              {hasWeight && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-700 mr-2">Value:</span>
+                  <input
+                    type="number"
+                    value={edgeWeight}
+                    onChange={(e) => setEdgeWeight(Number(e.target.value))}
                     min={1}
-                    disabled={!hasWeight}
+                    step={1}
+                    className="w-20 px-2 py-1 border rounded-md"
+                  />
+                  <Slider
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={[edgeWeight]}
+                    onValueChange={(value) => setEdgeWeight(value[0])}
+                    className="flex-1"
                   />
                 </div>
-                
-                <div className="mb-4 flex items-center py-1">
-                  <input 
-                    type="checkbox" 
-                    id="directed-toggle"
-                    className="mr-3 h-5 w-5 accent-blue-600" 
+              )}
+            </div>
+            
+            {/* Label */}
+            <div className="space-y-2">
+              <label className="text-base font-medium">Edge Label</label>
+              <input
+                type="text"
+                value={edgeLabel}
+                onChange={(e) => setEdgeLabel(e.target.value)}
+                placeholder="e.g., 'goto', 'then', etc."
+                className="w-full px-3 py-2 border rounded-md"
+              />
+            </div>
+
+            {/* Edge Description */}
+            <div className="space-y-2">
+              <label className="text-base font-medium">Description</label>
+              <input
+                type="text"
+                value={edgeDescription}
+                onChange={(e) => setEdgeDescription(e.target.value)}
+                placeholder="e.g., 'if x > 0', 'when event occurs'"
+                className="w-full px-3 py-2 border rounded-md"
+              />
+              <div className="flex items-center pt-2 space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    className="form-radio"
+                    name="descriptionPosition"
+                    value="above"
+                    checked={descriptionPosition === 'above'}
+                    onChange={() => setDescriptionPosition('above')}
+                  />
+                  <span className="ml-2">Above</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    className="form-radio"
+                    name="descriptionPosition"
+                    value="below"
+                    checked={descriptionPosition === 'below'}
+                    onChange={() => setDescriptionPosition('below')}
+                  />
+                  <span className="ml-2">Below</span>
+                </label>
+              </div>
+            </div>
+            
+            {/* Edge Direction */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-base font-medium">Direction</label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
                     checked={isDirected}
                     onChange={(e) => setIsDirected(e.target.checked)}
+                    className="sr-only peer"
                   />
-                  <label htmlFor="directed-toggle" className="text-base font-medium text-gray-700">
-                    Directed Edge (show arrow)
-                  </label>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-base font-medium text-gray-700 mb-2">Line Style</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEdgeStyle('solid')}
-                      className={`p-3 border ${edgeStyle === 'solid' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
-                    >
-                      Solid
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEdgeStyle('dashed')}
-                      className={`p-3 border ${edgeStyle === 'dashed' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
-                    >
-                      Dashed
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEdgeStyle('dotted')}
-                      className={`p-3 border ${edgeStyle === 'dotted' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
-                    >
-                      Dotted
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-base font-medium text-gray-700 mb-2">Edge Description</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 border border-gray-300 rounded-md text-base"
-                    value={edgeDescription} 
-                    onChange={(e) => setEdgeDescription(e.target.value)} 
-                    placeholder="Optional edge description"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    This description appears separately from the edge label and weight
-                  </p>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-base font-medium text-gray-700 mb-2">Description Position</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDescriptionPosition('above')}
-                      className={`p-3 border ${descriptionPosition === 'above' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
-                    >
-                      Above Weight
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDescriptionPosition('below')}
-                      className={`p-3 border ${descriptionPosition === 'below' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
-                    >
-                      Below Weight
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-base font-medium text-gray-700 mb-2">Edge Shape</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEdgeCurve('straight')}
-                      className={`p-3 border ${edgeCurve === 'straight' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
-                    >
-                      Straight
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEdgeCurve('bezier')}
-                      className={`p-3 border ${edgeCurve === 'bezier' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
-                    >
-                      Curved
-                    </button>
-                  </div>
-                </div>
-                
-                <div className={`mb-4 ${edgeCurve === 'straight' ? 'opacity-50' : ''}`}>
-                  <label className="block text-base font-medium text-gray-700 mb-2">
-                    Curve Amount: {edgeCurvature}
-                  </label>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    value={edgeCurvature} 
-                    onChange={(e) => setEdgeCurvature(Number(e.target.value))}
-                    className="w-full" 
-                    disabled={edgeCurve === 'straight'}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>Flat</span>
-                    <span>High Curve</span>
-                  </div>
-                </div>
-
-                <div className="mb-4">
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <span className="ml-2 text-sm font-medium">
+                    {isDirected ? 'Directed' : 'Undirected'}
+                  </span>
+                </label>
+              </div>
+              
+              {isDirected && currentEdge && currentEdge.data('source') !== currentEdge.data('target') && (
+                <button
+                  onClick={reverseEdge}
+                  className="mt-2 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
+                >
+                  Reverse Direction
+                </button>
+              )}
+            </div>
+            
+            {/* Edge Style */}
+            <div className="space-y-2">
+              <label className="text-base font-medium">Line Style</label>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setEdgeStyle('solid')}
+                  className={`px-3 py-2 rounded-md border ${
+                    edgeStyle === 'solid' ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+                  }`}
+                >
+                  Solid
+                </button>
+                <button
+                  onClick={() => setEdgeStyle('dashed')}
+                  className={`px-3 py-2 rounded-md border ${
+                    edgeStyle === 'dashed' ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+                  }`}
+                >
+                  Dashed
+                </button>
+                <button
+                  onClick={() => setEdgeStyle('dotted')}
+                  className={`px-3 py-2 rounded-md border ${
+                    edgeStyle === 'dotted' ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+                  }`}
+                >
+                  Dotted
+                </button>
+              </div>
+            </div>
+            
+            {/* Edge Curve */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-base font-medium">Edge Shape</label>
+                <div className="flex items-center space-x-2">
                   <button
-                    type="button"
-                    className="w-full py-3 px-2 border border-orange-400 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 flex items-center justify-center"
-                    onClick={() => {
-                      reverseEdge();
-                      // Keep the dialog open to show the change
-                    }}
+                    onClick={() => setEdgeCurve('straight')}
+                    className={`px-3 py-1 rounded-md border ${
+                      edgeCurve === 'straight' ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+                    }`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
-                    Reverse Edge Direction
+                    Straight
+                  </button>
+                  <button
+                    onClick={() => setEdgeCurve('bezier')}
+                    className={`px-3 py-1 rounded-md border ${
+                      edgeCurve === 'bezier' ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+                    }`}
+                  >
+                    Curved
                   </button>
                 </div>
               </div>
-            )}
+              
+              {edgeCurve === 'bezier' && (
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Curvature: {edgeCurvature}</span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[edgeCurvature]}
+                    onValueChange={(value) => setEdgeCurvature(value[0])}
+                  />
+                </div>
+              )}
+            </div>
           </div>
           
-          <div className="flex flex-col md:flex-row w-full mt-6 sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-            {/* Stack buttons vertically on mobile, horizontally on larger screens */}
-            <button 
-              className="w-full py-5 px-4 bg-red-500 text-white border-b md:border-b-0 md:border-r hover:bg-red-600 transition-colors font-medium text-base"
-              onClick={deleteEdge}
-            >
-              Delete
-            </button>
-            
-            <button 
-              className="w-full py-5 px-4 bg-gray-100 text-gray-700 border-b md:border-b-0 md:border-r hover:bg-gray-200 transition-colors font-medium text-base"
-              onClick={() => setEditEdgeOpen(false)}
-            >
-              Cancel
-            </button>
-            
-            <button 
-              className="w-full py-5 px-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium text-base"
-              onClick={updateEdge}
-            >
-              Save
-            </button>
-          </div>
+          <DialogFooter className="p-4 md:p-6 border-t bg-gray-50 flex justify-between">
+            <Button variant="destructive" onClick={deleteEdge}>
+              Delete Edge
+            </Button>
+            <div>
+              <Button variant="outline" className="mr-2" onClick={() => setEditEdgeOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={updateEdge}>
+                Update Edge
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Node Style Dialog */}
       <NodeStyleModal 
-        open={nodeStyleOpen}
-        onOpenChange={setNodeStyleOpen}
-        nodeId={selectedNodeId}
+        open={nodeStyleOpen} 
+        onOpenChange={setNodeStyleOpen} 
+        nodeId={selectedNodeId} 
       />
-    </>
+    </div>
   );
 }
