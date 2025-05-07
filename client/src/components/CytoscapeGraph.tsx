@@ -279,7 +279,6 @@ export default function CytoscapeGraph() {
                     oppositeEdge.data('isBidirectional', true);
                     
                     // Always make bidirectional edges curved with distinct style
-                    // The first edge curves in one direction (outward)
                     oppositeEdge.style({
                       'curve-style': 'unbundled-bezier',
                       'control-point-distances': 80, // Curve outward
@@ -559,7 +558,7 @@ export default function CytoscapeGraph() {
           const source = ele.data('source');
           const target = ele.data('target');
           
-          // Get all edges between these nodes
+          // Get all edges between these two nodes
           const edgesBetween = cy.edges().filter((e: any) => 
             (e.data('source') === source && e.data('target') === target) ||
             (e.data('source') === target && e.data('target') === source)
@@ -619,7 +618,7 @@ export default function CytoscapeGraph() {
         'line-color': '#805AD5' // Purple to distinguish from first edge
       }
     },
-    // Special style for bidirectional edges - always curved regardless of toggle setting
+    // Special style for bidirectional edges
     {
       selector: 'edge[isBidirectional]',
       style: {
@@ -627,28 +626,15 @@ export default function CytoscapeGraph() {
         'target-arrow-color': '#3182CE', // Blue arrows
         'width': isMobile ? 3 : 2.5, // Slightly thicker
         'arrow-scale': 1.7, // Slightly larger arrows
-        'curve-style': 'unbundled-bezier', // Force curved for bidirectional
-        // Special selector to determine curve direction for bidirectional relationships
+        'curve-style': 'unbundled-bezier', // Always curved for bidirectional
         'control-point-distances': function(ele: any) {
-          const cy = ele.cy();
           const source = ele.data('source');
           const target = ele.data('target');
           
-          // Find all edges between these two nodes
-          const edgesBetween = cy.edges().filter((e: any) => 
-            (e.data('source') === source && e.data('target') === target) ||
-            (e.data('source') === target && e.data('target') === source)
-          );
-          
-          // Get index of current edge to determine curve direction
-          // First edge curves in one direction, second edge curves in the opposite
-          const index = edgesBetween.indexOf(ele);
-          
-          // If it's the first edge of the pair, curve outward (positive)
-          // If it's the second edge of the pair, curve inward (negative)
-          const direction = (ele.data('source') === source && ele.data('target') === target) ? 80 : -80;
-          
-          return direction;
+          // Check direction to determine curve direction
+          // This creates the bracket/parenthesis effect by having 
+          // edges curve in opposite directions
+          return ele.data('source') === source ? 80 : -80;
         },
         'control-point-weights': 0.5
       }
