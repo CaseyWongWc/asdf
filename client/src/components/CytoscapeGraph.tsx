@@ -323,15 +323,50 @@ export default function CytoscapeGraph() {
                     'curve-style': curveStyle
                   };
                   
-                  // Style bidirectional edges differently - use straight lines with distinct color
+                  // Check for self-loop (edge to same node)
+                  const isSelfLoop = sourceNode === nodeId;
+                  
+                  // Style bidirectional edges with offset straight lines
                   if (isBidirectional) {
-                    styleObj['target-arrow-color'] = '#3182CE'; // Blue arrows
-                    styleObj['line-color'] = '#3182CE'; // Blue lines
-                    styleObj['curve-style'] = 'straight'; // Use straight lines for bidirectional
+                    styleObj['curve-style'] = 'straight'; // Use straight lines
+                    
+                    // Get opposite direction edge to coordinate offset styling
+                    const oppositeEdge = existingEdgeInOppositeDirection[0];
+                    const oppositeEdgeId = oppositeEdge.id();
+                    const thisEdgeId = edgeId;
+                    
+                    // Apply offset endpoints based on which edge was created first
+                    // This ensures consistent offset direction
+                    if (oppositeEdgeId < thisEdgeId) {
+                      // This is the second edge, offset down
+                      styleObj['source-endpoint'] = '0 7px';
+                      styleObj['target-endpoint'] = '0 7px';
+                    } else {
+                      // This is the first edge, offset up
+                      styleObj['source-endpoint'] = '0 -7px';
+                      styleObj['target-endpoint'] = '0 -7px';
+                    }
                     
                     // If using a status message, indicate this is bidirectional
                     setStatusMessage(`Created bidirectional edge relationship`);
-                  } else {
+                  } 
+                  // Style self-loops with rectangular paths
+                  else if (isSelfLoop) {
+                    // Mark as a rectangular self-loop for proper styling
+                    newEdge.data('isRectangularSelfLoop', true);
+                    
+                    // Use segments style for rectangular appearance
+                    styleObj['curve-style'] = 'segments';
+                    styleObj['segment-distances'] = [40, 40, 40]; // Right, up, left distances
+                    styleObj['segment-weights'] = [0.25, 0.5, 0.75]; // Control point positions
+                    styleObj['edge-distances'] = 'node-position';
+                    styleObj['target-arrow-color'] = '#64748B'; // Default gray
+                    styleObj['line-color'] = '#64748B';
+                    
+                    setStatusMessage(`Created self-loop with weight 1`);
+                  }
+                  // Normal edge styling
+                  else {
                     styleObj['target-arrow-color'] = '#64748B'; // Default gray
                     styleObj['line-color'] = '#64748B';
                     
@@ -611,15 +646,77 @@ export default function CytoscapeGraph() {
         'line-color': '#805AD5' // Purple to distinguish from first edge
       }
     },
-    // Special style for bidirectional edges - now using straight lines
+    // Special style for bidirectional edges - using offset straight lines
     {
       selector: 'edge[isBidirectional]',
       style: {
-        'line-color': '#3182CE', // Blue for bidirectional
-        'target-arrow-color': '#3182CE', // Blue arrows
+        'line-color': '#64748B', // Standard color
+        'target-arrow-color': '#64748B', // Standard arrow color
         'width': isMobile ? 3 : 2.5, // Slightly thicker
         'arrow-scale': 1.7, // Slightly larger arrows
-        'curve-style': 'straight' // Use straight lines for bidirectional edges
+        'curve-style': 'straight', // Use straight lines for bidirectional edges
+        // Apply offset based on direction to create parallel lines
+        'source-endpoint': function(ele: any) {
+          // For first direction of each bidirectional pair, offset up
+          return '0 -7px';
+        },
+        'target-endpoint': function(ele: any) {
+          // For first direction of each bidirectional pair, offset up 
+          return '0 -7px';
+        }
+      }
+    },
+    
+    // Style for edges in the opposite direction of a bidirectional relationship
+    {
+      selector: 'edge[source][target]',
+      style: {
+        'source-endpoint': function(ele: any) {
+          // Apply offset for opposite direction edges in bidirectional relationships
+          if (ele.data('isBidirectional')) {
+            const source = ele.data('source');
+            const target = ele.data('target');
+            const cy = ele.cy();
+            
+            // Look for the edge going in the opposite direction
+            const oppositeEdges = cy.edges().filter((e: any) => 
+              e.data('source') === target && e.data('target') === source && e.data('isBidirectional')
+            );
+            
+            // If there's a matching opposite edge and this is the second one created
+            // Apply different offset (down instead of up)
+            if (oppositeEdges.length > 0) {
+              const oppositeCreatedFirst = oppositeEdges[0].id() < ele.id();
+              if (oppositeCreatedFirst) {
+                return '0 7px'; // Offset down
+              }
+            }
+          }
+          return ele.style('source-endpoint');
+        },
+        'target-endpoint': function(ele: any) {
+          // Apply offset for opposite direction edges in bidirectional relationships
+          if (ele.data('isBidirectional')) {
+            const source = ele.data('source');
+            const target = ele.data('target');
+            const cy = ele.cy();
+            
+            // Look for the edge going in the opposite direction
+            const oppositeEdges = cy.edges().filter((e: any) => 
+              e.data('source') === target && e.data('target') === source && e.data('isBidirectional')
+            );
+            
+            // If there's a matching opposite edge and this is the second one created
+            // Apply different offset (down instead of up)
+            if (oppositeEdges.length > 0) {
+              const oppositeCreatedFirst = oppositeEdges[0].id() < ele.id();
+              if (oppositeCreatedFirst) {
+                return '0 7px'; // Offset down
+              }
+            }
+          }
+          return ele.style('target-endpoint');
+        }
       }
     },
     // Edge with label but no weight style
@@ -684,14 +781,43 @@ export default function CytoscapeGraph() {
     
     // Legacy self-loop style for backwards compatibility
     {
-      selector: 'edge[source = target]:not([isRectangularSelfLoop])',
+      selector: 'edge[source][target]',
       style: {
-        'curve-style': 'bezier',
-        'control-point-step-size': 80,
-        'control-point-distance': 120,
-        'control-point-weight': 0.7,
-        'loop-direction': '-45deg',
-        'loop-sweep': '315deg'
+        'curve-style': function(ele: any) {
+          // Only apply to self-loops that are not rectangular
+          if (ele.data('source') === ele.data('target') && !ele.data('isRectangularSelfLoop')) {
+            return 'bezier';
+          }
+          return ele.style('curve-style');
+        },
+        'control-point-step-size': function(ele: any) {
+          // Only apply to self-loops that are not rectangular
+          if (ele.data('source') === ele.data('target') && !ele.data('isRectangularSelfLoop')) {
+            return 80;
+          }
+          return ele.style('control-point-step-size');
+        },
+        'control-point-distance': function(ele: any) {
+          // Only apply to self-loops that are not rectangular
+          if (ele.data('source') === ele.data('target') && !ele.data('isRectangularSelfLoop')) {
+            return 120;
+          }
+          return 0;
+        },
+        'loop-direction': function(ele: any) {
+          // Only apply to self-loops that are not rectangular
+          if (ele.data('source') === ele.data('target') && !ele.data('isRectangularSelfLoop')) {
+            return '-45deg';
+          }
+          return '0deg';
+        },
+        'loop-sweep': function(ele: any) {
+          // Only apply to self-loops that are not rectangular
+          if (ele.data('source') === ele.data('target') && !ele.data('isRectangularSelfLoop')) {
+            return '315deg';
+          }
+          return '0deg';
+        }
       }
     }
   ];
@@ -834,7 +960,7 @@ export default function CytoscapeGraph() {
                       return;
                     }
                     
-                    // Don't change bidirectional edges - they have their special styling
+                    // Don't change bidirectional edges - they always use the offset straight line styling
                     if (edge.data('isBidirectional') === true) {
                       return;
                     }
@@ -865,12 +991,12 @@ export default function CytoscapeGraph() {
               variant={edgeDisplayStyle === 'straight' ? 'default' : 'outline'}
               onClick={() => {
                 setEdgeDisplayStyle('straight');
-                setStatusMessage('Using straight edges (except for bidirectional edges)');
+                setStatusMessage('Using straight edges for normal connections');
                 
                 // Apply to existing edges
                 if (cyRef.current) {
                   cyRef.current.edges().forEach((edge: any) => {
-                    // Don't change bidirectional edges - they should always be curved
+                    // Don't change bidirectional edges - they always use offset straight lines
                     if (edge.data('isBidirectional') === true) {
                       return;
                     }
