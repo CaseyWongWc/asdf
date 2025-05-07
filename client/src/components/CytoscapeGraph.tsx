@@ -65,31 +65,54 @@ export default function CytoscapeGraph() {
       setTimeout(() => {
         console.log("Adding initial Cytoscape nodes");
 
-        // Add nodes positioned across the canvas, using timestamp to ensure unique IDs
-        const timestamp1 = Date.now();
-        cy.add({
-          group: "nodes",
-          data: { id: `n${timestamp1}`, label: "Node 1" },
-          position: { x: 100, y: 100 },
-        });
-
-        const timestamp2 = Date.now() + 1; // Add 1 ms to ensure uniqueness
-        cy.add({
-          group: "nodes",
-          data: { id: `n${timestamp2}`, label: "Node 2" },
-          position: { x: 250, y: 100 },
-        });
-
-        const timestamp3 = Date.now() + 2; // Add 2 ms to ensure uniqueness
-        cy.add({
-          group: "nodes",
-          data: { id: `n${timestamp3}`, label: "Node 3" },
-          position: { x: 175, y: 200 },
-        });
+        // Calculate center position of viewport
+        const center = {
+          x: cy.width() / 2,
+          y: cy.height() / 2
+        };
+        
+        // Add nodes in a triangle formation around the center
+        // This creates a more balanced initial layout
+        const nodeRadius = Math.min(cy.width(), cy.height()) * 0.15; // 15% of smallest dimension
+        
+        // Calculate positions in a triangle around center
+        const positions = [
+          { x: center.x - nodeRadius, y: center.y - nodeRadius/1.5 },
+          { x: center.x + nodeRadius, y: center.y - nodeRadius/1.5 },
+          { x: center.x, y: center.y + nodeRadius }
+        ];
+        
+        // Create nodes with timestamp-based IDs to avoid collisions
+        for (let i = 0; i < 3; i++) {
+          const timestamp = Date.now() + i; // Add index to ensure uniqueness
+          const node = {
+            group: "nodes",
+            data: { 
+              id: `n${timestamp}`, 
+              label: `Node ${i+1}` 
+            },
+            position: positions[i]
+          };
+          
+          // Add node with animation
+          cy.add(node);
+          
+          // Apply a subtle fade-in animation
+          cy.getElementById(`n${timestamp}`)
+            .style('opacity', 0)
+            .animate({
+              style: { opacity: 1 },
+              duration: 300,
+              easing: 'ease-in-out'
+            });
+        }
 
         // Update node count in context
         setNodeCount(cy.nodes().length);
         setEdgeCount(cy.edges().length);
+        
+        // Center the view on the new nodes
+        cy.fit(cy.nodes(), 50); // 50px padding
       }, 500);
 
       // Cleanup function
@@ -123,16 +146,43 @@ export default function CytoscapeGraph() {
               return;
             }
 
-            // Create new node at click position
+            // Create new node at click position with improved ID generation
             const pos = event.position;
-            const nodeId = `n${Date.now()}`;
-            const nodeLabel = `Node ${cy.nodes().length + 1}`;
-
-            cy.add({
+            
+            // Use the node count plus a timestamp suffix for better uniqueness
+            // This prevents collisions if nodes are created/deleted rapidly
+            const existingCount = cy.nodes().length;
+            const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp for uniqueness
+            const nodeId = `n${existingCount+1}_${timestamp}`;
+            const nodeLabel = `Node ${existingCount + 1}`;
+            
+            // First add the node with 0 opacity
+            const newNode = cy.add({
               group: "nodes",
               data: { id: nodeId, label: nodeLabel },
               position: { x: pos.x, y: pos.y },
+              style: { 'opacity': 0 } // Start invisible for animation
             });
+            
+            // Then animate it in with a gentle fade
+            cy.getElementById(nodeId)
+              .animate({
+                style: { 'opacity': 1 },
+                duration: 300,
+                easing: 'ease-in-out'
+              });
+            
+            // Apply a subtle "pop" animation
+            cy.getElementById(nodeId)
+              .animate({
+                style: { 'height': isMobile ? 55 : 45, 'width': isMobile ? 55 : 45 },
+                duration: 100
+              })
+              .delay(100)
+              .animate({
+                style: { 'height': isMobile ? 50 : 40, 'width': isMobile ? 50 : 40 },
+                duration: 100
+              });
 
             setNodeCount(cy.nodes().length);
             setStatusMessage(`Created ${nodeLabel}`);
@@ -347,7 +397,28 @@ export default function CytoscapeGraph() {
                     styleObj["control-point-weights"] = 0.5;
                   }
 
+                  // First set the edge with opacity 0
+                  styleObj["opacity"] = 0;
                   newEdge.style(styleObj);
+                  
+                  // Then animate it in with a gentle fade
+                  newEdge.animate({
+                    style: { 'opacity': 1 },
+                    duration: 300,
+                    easing: 'ease-in-out'
+                  });
+                  
+                  // Add a subtle width animation for emphasis
+                  const finalWidth = isMobile ? 3 : 2;
+                  newEdge.animate({
+                    style: { 'width': finalWidth * 1.5 },
+                    duration: 150
+                  })
+                  .delay(150)
+                  .animate({
+                    style: { 'width': finalWidth },
+                    duration: 150
+                  });
 
                   console.log(
                     `Edge created successfully, new edge count: ${cy.edges().length}`,
