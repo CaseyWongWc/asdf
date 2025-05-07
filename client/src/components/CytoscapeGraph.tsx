@@ -372,11 +372,11 @@ export default function CytoscapeGraph() {
                     styleObj['target-arrow-color'] = '#64748B'; // Default gray
                     styleObj['line-color'] = '#64748B';
                     
-                    // Only add control points if using curved style and not bidirectional
-                    if (curveStyle === 'unbundled-bezier') {
-                      styleObj['control-point-distances'] = controlDistance;
-                      styleObj['control-point-weights'] = 0.5;
-                    }
+                    // COMMENTED OUT: Curved style control points (saving for future use)
+                    // if (curveStyle === 'unbundled-bezier') {
+                    //   styleObj['control-point-distances'] = controlDistance;
+                    //   styleObj['control-point-weights'] = 0.5;
+                    // }
                     
                     setStatusMessage(`Created directed edge with weight 1`);
                   }
@@ -551,9 +551,11 @@ export default function CytoscapeGraph() {
         'target-arrow-shape': 'none',
         'target-arrow-color': '#64748B',
         'arrow-scale': 1.5,
-        'curve-style': 'unbundled-bezier',
-        'control-point-distances': 50,
-        'control-point-weights': 0.5
+        'curve-style': 'straight'
+        // COMMENTED OUT: Curved style options (saving for future use)
+        // 'curve-style': 'unbundled-bezier',
+        // 'control-point-distances': 50,
+        // 'control-point-weights': 0.5
       }
     },
     // Style for parallel edges between same nodes (first edge)
@@ -576,8 +578,10 @@ export default function CytoscapeGraph() {
             (e.data('source') === target && e.data('target') === source)
           );
           
-          // For all normal edges use unbundled-bezier to allow more control
-          return parallelEdges.length > 1 ? 'unbundled-bezier' : 'unbundled-bezier';
+          // For all normal edges use straight style
+          // CURVED STYLE COMMENTED OUT FOR FUTURE USE:
+          // return parallelEdges.length > 1 ? 'unbundled-bezier' : 'unbundled-bezier';
+          return 'straight';
         },
         'control-point-distances': function(ele: any) {
           if (ele.data('source') === ele.data('target')) {
@@ -942,8 +946,10 @@ export default function CytoscapeGraph() {
         layout={{ name: 'preset' }} // Use preset layout to respect node positions
       />
       
-      {/* Edge Style Toggle Control */}
-      {mode === 'editor' && (
+      {/* Edge Style Toggle Control - COMMENTED OUT FOR FUTURE USE */}
+      {/* Curved edge styles have been disabled for now.
+          This toggle control is saved for future use when we decide to re-enable curved edges */}
+      {/* {mode === 'editor' && (
         <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex items-center gap-2 border border-gray-200">
           <span className="text-sm font-medium whitespace-nowrap">Edge Style:</span>
           <div className="flex space-x-2">
