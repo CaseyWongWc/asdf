@@ -215,14 +215,58 @@ export default function CytoscapeGraph() {
               });
               
               // Apply styles to the self-loop edge with rectangular path
+              // Determine if this is the first or second self-loop
+              const selfLoopIndex = existingSelfLoops.length;
+              
+              // Calculate the horizontal and vertical expansion based on index and number of self-loops
+              // For multiple self-loops, we'll expand in different directions around the node
+              let horizontalExpansion, verticalExpansion;
+              
+              if (existingSelfLoops.length < 4) {
+                // For 4 or fewer self-loops, use a simple alternating pattern
+                switch (selfLoopIndex) {
+                  case 0: // First loop extends right (east)
+                    horizontalExpansion = 70;
+                    verticalExpansion = 30;
+                    break;
+                  case 1: // Second loop extends up (north)
+                    horizontalExpansion = 30;
+                    verticalExpansion = 70;
+                    break;
+                  case 2: // Third loop extends left (west)
+                    horizontalExpansion = -70;
+                    verticalExpansion = 30;
+                    break;
+                  case 3: // Fourth loop extends down (south)
+                    horizontalExpansion = 30;
+                    verticalExpansion = -70;
+                    break;
+                  default:
+                    horizontalExpansion = 60;
+                    verticalExpansion = 30;
+                }
+              } else {
+                // For more than 4 loops, distribute evenly in a circle around the node
+                // Calculate angle based on index and total number of loops (adding 1 for the new loop)
+                const angle = (selfLoopIndex / (existingSelfLoops.length + 1)) * 2 * Math.PI;
+                
+                // Calculate horizontal and vertical components from angle
+                // Use sine and cosine to position loops in a circular pattern
+                const distanceFromNode = 60;
+                horizontalExpansion = Math.round(Math.cos(angle) * distanceFromNode);
+                verticalExpansion = Math.round(Math.sin(angle) * distanceFromNode);
+              }
+              
               selfLoopEdge.style({
                 'target-arrow-shape': 'triangle',
-                'line-style': 'solid',
+                'line-style': selfLoopIndex === 0 ? 'solid' : 'dashed',
                 'curve-style': 'segments',
-                'segment-distances': [20, 20, 20], // Controls how far out the rectangle extends
+                'segment-distances': [horizontalExpansion, verticalExpansion, horizontalExpansion], // Controls how far out the rectangle extends
                 'segment-weights': [0.25, 0.5, 0.75], // Control points for the segments
                 'edge-distances': 'node-position',
-                'arrow-scale': 1.5
+                'arrow-scale': 1.5,
+                // Store the self-loop index for future styling reference
+                'z-index': 10 + selfLoopIndex // Stack self-loops in the proper order
               });
               
               console.log(`Self-loop created, new edge count: ${cy.edges().length}`);
@@ -315,8 +359,14 @@ export default function CytoscapeGraph() {
                   const edgeNumber = existingEdgeInDirection.length + 1;
                   const multiEdgeLabel = edgeNumber > 1 ? `(${edgeNumber})` : '';
                   
+                  // Store all the information needed for edge display
                   newEdge.data('multiEdgeLabel', multiEdgeLabel);
                   newEdge.data('edgeNumber', edgeNumber);
+                  
+                  // Store info about how many edges are between these nodes in this direction
+                  // This helps when calculating offsets
+                  const totalEdgesInDirection = existingEdgeInDirection.length + 1;
+                  newEdge.data('totalEdgesInDirection', totalEdgesInDirection);
                   
                   // Set up styling for the new edge
                   const styleObj: any = {
@@ -558,7 +608,7 @@ export default function CytoscapeGraph() {
         // 'control-point-weights': 0.5
       }
     },
-    // Style for parallel edges between same nodes (first edge)
+    // Style for multiple parallel edges between nodes
     {
       selector: 'edge[source][target]',
       style: {
@@ -568,41 +618,96 @@ export default function CytoscapeGraph() {
             return 'bezier';
           }
           
-          // Count how many edges there are between these two nodes
-          const cy = ele.cy();
-          const source = ele.data('source');
-          const target = ele.data('target');
-          
-          const parallelEdges = cy.edges().filter((e: any) => 
-            (e.data('source') === source && e.data('target') === target) ||
-            (e.data('source') === target && e.data('target') === source)
-          );
+          // Don't modify style for bidirectional edges
+          if (ele.data('isBidirectional') === true) {
+            return ele.style('curve-style');
+          }
           
           // For all normal edges use straight style
-          // CURVED STYLE COMMENTED OUT FOR FUTURE USE:
-          // return parallelEdges.length > 1 ? 'unbundled-bezier' : 'unbundled-bezier';
           return 'straight';
         },
-        'control-point-distances': function(ele: any) {
-          if (ele.data('source') === ele.data('target')) {
-            return 120; // Self-loops get special treatment
+        // For edges between same nodes, we'll implement a diep.io style fan-out pattern
+        'source-endpoint': function(ele: any) {
+          // Skip self-loops and bidirectional edges
+          if (ele.data('source') === ele.data('target') || ele.data('isBidirectional') === true) {
+            return ele.style('source-endpoint');
           }
           
           const cy = ele.cy();
           const source = ele.data('source');
           const target = ele.data('target');
           
-          // Get all edges between these two nodes
-          const edgesBetween = cy.edges().filter((e: any) => 
-            (e.data('source') === source && e.data('target') === target) ||
-            (e.data('source') === target && e.data('target') === source)
+          // Get all edges going in this specific direction (not all edges between these nodes)
+          const parallelEdges = cy.edges().filter((e: any) => 
+            e.data('source') === source && e.data('target') === target
           );
           
-          // Get index of current edge
-          const index = edgesBetween.indexOf(ele);
+          // Skip if there's only one edge
+          if (parallelEdges.length <= 1) {
+            return ele.style('source-endpoint');
+          }
           
-          // Apply stronger gravity effect based on index
-          return index === 0 ? -100 : 100; // First edge above, second edge below with more pronounced curve
+          // Get this edge's position among the parallel edges
+          const edgeIndex = parallelEdges.indexOf(ele);
+          const totalEdges = parallelEdges.length;
+          
+          // Calculate offset based on node diameter and number of edges
+          const nodeSize = 40; // Base node size in pixels
+          const maxOffset = nodeSize / 2 - 5; // Maximum offset slightly less than node radius to avoid overspill
+          
+          // Calculate normalized position from -1 to 1
+          // With 2 edges: -0.5 and 0.5
+          // With 3 edges: -0.67, 0, 0.67
+          // With 4 edges: -0.75, -0.25, 0.25, 0.75
+          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          
+          // Scale to actual offset
+          const offset = Math.round(normalizedPosition * maxOffset);
+          
+          return `0 ${offset}px`;
+        },
+        'target-endpoint': function(ele: any) {
+          // Skip self-loops and bidirectional edges
+          if (ele.data('source') === ele.data('target') || ele.data('isBidirectional') === true) {
+            return ele.style('target-endpoint');
+          }
+          
+          const cy = ele.cy();
+          const source = ele.data('source');
+          const target = ele.data('target');
+          
+          // Get all edges going in this specific direction (not all edges between these nodes)
+          const parallelEdges = cy.edges().filter((e: any) => 
+            e.data('source') === source && e.data('target') === target
+          );
+          
+          // Skip if there's only one edge
+          if (parallelEdges.length <= 1) {
+            return ele.style('target-endpoint');
+          }
+          
+          // Get this edge's position among the parallel edges
+          const edgeIndex = parallelEdges.indexOf(ele);
+          const totalEdges = parallelEdges.length;
+          
+          // Calculate offset based on node diameter and number of edges
+          const nodeSize = 40; // Base node size in pixels
+          const maxOffset = nodeSize / 2 - 5; // Maximum offset slightly less than node radius
+          
+          // Calculate normalized position from -1 to 1
+          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          
+          // Scale to actual offset
+          const offset = Math.round(normalizedPosition * maxOffset);
+          
+          return `0 ${offset}px`;
+        },
+        // Keeping control-point settings commented out for future bezier support
+        'control-point-distances': function(ele: any) {
+          if (ele.data('source') === ele.data('target')) {
+            return 120; // Self-loops get special treatment
+          }
+          return 0; // Not using bezier curves right now
         },
         'control-point-weights': 0.5
       }
@@ -652,7 +757,7 @@ export default function CytoscapeGraph() {
         'line-color': '#805AD5' // Purple to distinguish from first edge
       }
     },
-    // Special style for bidirectional edges - using offset straight lines
+    // Special style for bidirectional edges - using offset straight lines with fan-out pattern
     {
       selector: 'edge[isBidirectional]',
       style: {
@@ -661,14 +766,60 @@ export default function CytoscapeGraph() {
         'width': isMobile ? 3 : 2.5, // Slightly thicker
         'arrow-scale': 1.7, // Slightly larger arrows
         'curve-style': 'straight', // Use straight lines for bidirectional edges
-        // Apply offset based on direction to create parallel lines
+        // Apply fan-out pattern based on source and target nodes
         'source-endpoint': function(ele: any) {
-          // For first direction of each bidirectional pair, offset up
-          return '0 -7px';
+          const cy = ele.cy();
+          const source = ele.data('source');
+          const target = ele.data('target');
+          
+          // Count total edges between these nodes in both directions
+          const allEdgesBetween = cy.edges().filter((e: any) => 
+            (e.data('source') === source && e.data('target') === target) ||
+            (e.data('source') === target && e.data('target') === source)
+          );
+          
+          // Get this edge's position in the ordering
+          const edgeIndex = allEdgesBetween.indexOf(ele);
+          const totalEdges = allEdgesBetween.length;
+          
+          // Calculate the fan-out offset based on node size and number of edges
+          const nodeSize = 40; // Base node size in pixels
+          const maxOffset = nodeSize / 2; // Maximum offset shouldn't exceed node radius
+          
+          // Calculate normalized position: ranges from -1 to 1 (center = 0)
+          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          
+          // Scale normalized position to actual pixel offset, accounting for node size
+          const yOffset = Math.round(normalizedPosition * maxOffset);
+          
+          return `0 ${yOffset}px`;
         },
         'target-endpoint': function(ele: any) {
-          // For first direction of each bidirectional pair, offset up 
-          return '0 -7px';
+          const cy = ele.cy();
+          const source = ele.data('source');
+          const target = ele.data('target');
+          
+          // Count total edges between these nodes in both directions
+          const allEdgesBetween = cy.edges().filter((e: any) => 
+            (e.data('source') === source && e.data('target') === target) ||
+            (e.data('source') === target && e.data('target') === source)
+          );
+          
+          // Get this edge's position in the ordering
+          const edgeIndex = allEdgesBetween.indexOf(ele);
+          const totalEdges = allEdgesBetween.length;
+          
+          // Calculate the fan-out offset based on node size and number of edges
+          const nodeSize = 40; // Base node size in pixels
+          const maxOffset = nodeSize / 2; // Maximum offset shouldn't exceed node radius
+          
+          // Calculate normalized position: ranges from -1 to 1 (center = 0)
+          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          
+          // Scale normalized position to actual pixel offset, accounting for node size
+          const yOffset = Math.round(normalizedPosition * maxOffset);
+          
+          return `0 ${yOffset}px`;
         }
       }
     },
@@ -775,13 +926,94 @@ export default function CytoscapeGraph() {
       selector: 'edge[isRectangularSelfLoop]',
       style: {
         'curve-style': 'segments',
-        'segment-distances': [40, 40, 40], // Right, up, left distances
+        'segment-distances': function(ele: any) {
+          // Find all self-loops on this node
+          const cy = ele.cy();
+          const nodeId = ele.data('source');
+          const selfLoops = cy.edges().filter((e: any) => 
+            e.data('source') === nodeId && e.data('target') === nodeId
+          );
+          
+          // Get index of current self-loop
+          const index = selfLoops.indexOf(ele);
+          
+          // Calculate the horizontal and vertical expansion based on index and number of self-loops
+          // For multiple self-loops, we'll expand in different directions around the node
+          
+          // Determine best direction for expansion based on loop index
+          // This creates a pattern where loops expand in different directions to avoid overlap
+          // With larger numbers of self-loops, we distribute them evenly around the node
+          let horizontalExpansion, verticalExpansion;
+          
+          if (selfLoops.length <= 4) {
+            // For 4 or fewer self-loops, use a simple alternating pattern
+            switch (index) {
+              case 0: // First loop extends right (east)
+                horizontalExpansion = 70;
+                verticalExpansion = 30;
+                break;
+              case 1: // Second loop extends up (north)
+                horizontalExpansion = 30;
+                verticalExpansion = 70;
+                break;
+              case 2: // Third loop extends left (west)
+                horizontalExpansion = -70;
+                verticalExpansion = 30;
+                break;
+              case 3: // Fourth loop extends down (south)
+                horizontalExpansion = 30;
+                verticalExpansion = -70;
+                break;
+              default:
+                horizontalExpansion = 60;
+                verticalExpansion = 30;
+            }
+          } else {
+            // For more than 4 loops, distribute evenly in a circle around the node
+            // Calculate angle based on index and total number of loops
+            const angle = (index / selfLoops.length) * 2 * Math.PI;
+            
+            // Calculate horizontal and vertical components from angle
+            // Use sine and cosine to position loops in a circular pattern
+            const distanceFromNode = 60;
+            horizontalExpansion = Math.round(Math.cos(angle) * distanceFromNode);
+            verticalExpansion = Math.round(Math.sin(angle) * distanceFromNode);
+          }
+          
+          return [horizontalExpansion, verticalExpansion, horizontalExpansion];
+        },
         'segment-weights': [0.25, 0.5, 0.75], // Positioning of control points
         'edge-distances': 'node-position',
         'target-arrow-shape': 'triangle',
         'arrow-scale': 1.5,
         'line-color': '#64748B',
-        'target-arrow-color': '#64748B'
+        'target-arrow-color': '#64748B',
+        'line-style': function(ele: any) {
+          // Get all self-loops on this node
+          const cy = ele.cy();
+          const nodeId = ele.data('source');
+          const selfLoops = cy.edges().filter((e: any) => 
+            e.data('source') === nodeId && e.data('target') === nodeId
+          );
+          
+          // Get index of current self-loop
+          const index = selfLoops.indexOf(ele);
+          
+          // Use different styles for different self-loops
+          return index === 0 ? 'solid' : 'dashed';
+        },
+        'z-index': function(ele: any) {
+          // Get all self-loops on this node
+          const cy = ele.cy();
+          const nodeId = ele.data('source');
+          const selfLoops = cy.edges().filter((e: any) => 
+            e.data('source') === nodeId && e.data('target') === nodeId
+          );
+          
+          // Get index of current self-loop for z-index
+          const index = selfLoops.indexOf(ele);
+          return 10 + index; // Stack self-loops in the proper order
+        }
       }
     },
     
