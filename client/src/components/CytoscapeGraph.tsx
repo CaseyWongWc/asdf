@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import NodeStyleModal from "./NodeStyleModal";
 
 // Define edge display style type for toggle
-type EdgeDisplayStyle = 'curved' | 'straight';
+// Note: Curved options commented out, but kept for potential future use
+// type EdgeDisplayStyle = 'curved' | 'straight' | 'bendy';
+type EdgeDisplayStyle = 'straight';
 
 export default function CytoscapeGraph() {
   const cyRef = useRef<any>(null);
@@ -23,7 +25,7 @@ export default function CytoscapeGraph() {
   const isMobile = useIsMobile();
   
   // State for edge display style toggle
-  const [edgeDisplayStyle, setEdgeDisplayStyle] = useState<EdgeDisplayStyle>('curved');
+  const [edgeDisplayStyle, setEdgeDisplayStyle] = useState<EdgeDisplayStyle>('straight');
   
   // Edge edit dialog state
   const [editEdgeOpen, setEditEdgeOpen] = useState(false);
@@ -260,8 +262,8 @@ export default function CytoscapeGraph() {
                   // Detect if we're creating a bidirectional relationship
                   const isCreatingBidirectional = existingEdgeInOppositeDirection.length > 0;
                   
-                  // Use the selected edge display style
-                  const curveStyle = edgeDisplayStyle === 'curved' ? 'unbundled-bezier' : 'straight';
+                  // All edges use straight style by default
+                  const curveStyle = 'straight';
                   
                   // Create stronger gravity effect for parallel edges if using curved style
                   // First edge has control points above, second below
