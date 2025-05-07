@@ -253,51 +253,12 @@ export default function CytoscapeGraph() {
                     )
                   );
                   
-                  // Check if there's an edge in the opposite direction
-                  const existingEdgeInOppositeDirection = cy.edges().filter(
-                    (edge: any) => (
-                      edge.data('source') === nodeId && edge.data('target') === sourceNode
-                    )
-                  );
-                  
-                  // Detect if we're creating a bidirectional relationship
-                  const isCreatingBidirectional = existingEdgeInOppositeDirection.length > 0;
-                  
                   // Use the selected edge display style
                   const curveStyle = edgeDisplayStyle === 'curved' ? 'unbundled-bezier' : 'straight';
                   
                   // Create stronger gravity effect for parallel edges if using curved style
                   // First edge has control points above, second below
                   const controlDistance = existingEdgeInDirection.length === 0 ? -80 : 80;
-                  
-                  // If we're creating a bidirectional relationship, update the existing edge in the opposite direction
-                  if (isCreatingBidirectional) {
-                    console.log('Creating bidirectional relationship');
-                    
-                    // Mark the existing edge as part of a bidirectional relationship
-                    const oppositeEdge = existingEdgeInOppositeDirection[0];
-                    oppositeEdge.data('isBidirectional', true);
-                    
-                    // Update styling of the opposite direction edge to indicate it's bidirectional
-                    if (edgeDisplayStyle === 'curved') {
-                      oppositeEdge.style({
-                        'curve-style': 'unbundled-bezier',
-                        'control-point-distances': 80, // Curve downward
-                        'control-point-weights': 0.5,
-                        'target-arrow-color': '#3182CE', // Blue to indicate bidirectional
-                        'line-color': '#3182CE'
-                      });
-                    } else {
-                      oppositeEdge.style({
-                        'curve-style': 'straight',
-                        'target-arrow-color': '#3182CE', // Blue to indicate bidirectional
-                        'line-color': '#3182CE'
-                      });
-                    }
-                  }
-                  
-                  // Also mark the new edge as bidirectional if applicable
-                  const isBidirectional = isCreatingBidirectional;
                   
                   const newEdge = cy.add({
                     group: 'edges',
@@ -313,9 +274,7 @@ export default function CytoscapeGraph() {
                       curvature: 40,
                       targetArrow: 'triangle',
                       // Store this info for parallel edge detection
-                      parallelIndex: existingEdgeInDirection.length,
-                      // Mark if this is part of a bidirectional pair
-                      isBidirectional: isBidirectional
+                      parallelIndex: existingEdgeInDirection.length
                     }
                   });
                   
@@ -329,25 +288,12 @@ export default function CytoscapeGraph() {
                   newEdge.data('multiEdgeLabel', multiEdgeLabel);
                   newEdge.data('edgeNumber', edgeNumber);
                   
-                  // Set up styling for the new edge
                   const styleObj: any = {
                     'target-arrow-shape': 'triangle',
+                    'target-arrow-color': '#64748B',
                     'line-style': lineStyle,
                     'curve-style': curveStyle
                   };
-                  
-                  // Style bidirectional edges differently
-                  if (isBidirectional) {
-                    styleObj['target-arrow-color'] = '#3182CE'; // Blue arrows
-                    styleObj['line-color'] = '#3182CE'; // Blue lines
-                    
-                    // If using a status message, indicate this is bidirectional
-                    setStatusMessage(`Created bidirectional edge relationship`);
-                  } else {
-                    styleObj['target-arrow-color'] = '#64748B'; // Default gray
-                    styleObj['line-color'] = '#64748B';
-                    setStatusMessage(`Created directed edge with weight 1`);
-                  }
                   
                   // Only add control points if using curved style
                   if (curveStyle === 'unbundled-bezier') {
@@ -359,6 +305,7 @@ export default function CytoscapeGraph() {
                   
                   console.log(`Edge created successfully, new edge count: ${cy.edges().length}`);
                   setEdgeCount(cy.edges().length);
+                  setStatusMessage(`Created directed edge with weight 1`);
                 } catch (error) {
                   console.error('Error creating edge:', error);
                   setStatusMessage('Error creating edge');
@@ -620,16 +567,6 @@ export default function CytoscapeGraph() {
         'line-style': 'dashed',
         'line-dash-pattern': [6, 3],
         'line-color': '#805AD5' // Purple to distinguish from first edge
-      }
-    },
-    // Special style for bidirectional edges
-    {
-      selector: 'edge[isBidirectional]',
-      style: {
-        'line-color': '#3182CE', // Blue for bidirectional
-        'target-arrow-color': '#3182CE', // Blue arrows
-        'width': isMobile ? 3 : 2.5, // Slightly thicker
-        'arrow-scale': 1.7 // Slightly larger arrows
       }
     },
     // Edge with label but no weight style
@@ -1090,9 +1027,9 @@ export default function CytoscapeGraph() {
                     <span className="text-sm">Curvature: {edgeCurvature}</span>
                   </div>
                   <Slider
-                    min={20}
-                    max={150}
-                    step={10}
+                    min={0}
+                    max={100}
+                    step={5}
                     value={[edgeCurvature]}
                     onValueChange={(value) => setEdgeCurvature(value[0])}
                   />
@@ -1101,29 +1038,27 @@ export default function CytoscapeGraph() {
             </div>
           </div>
           
-          <DialogFooter className="p-4 md:p-6 bg-gray-50 flex justify-between">
+          <DialogFooter className="p-4 md:p-6 border-t bg-gray-50 flex justify-between">
+            <Button variant="destructive" onClick={deleteEdge}>
+              Delete Edge
+            </Button>
             <div>
-              <Button variant="destructive" onClick={deleteEdge}>
-                Delete Edge
-              </Button>
-            </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => setEditEdgeOpen(false)}>
+              <Button variant="outline" className="mr-2" onClick={() => setEditEdgeOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={updateEdge}>
-                Save Changes
+                Update Edge
               </Button>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Node Style Modal */}
+
+      {/* Node Style Dialog */}
       <NodeStyleModal 
         open={nodeStyleOpen} 
-        onOpenChange={setNodeStyleOpen}
-        nodeId={selectedNodeId}
+        onOpenChange={setNodeStyleOpen} 
+        nodeId={selectedNodeId} 
       />
     </div>
   );
