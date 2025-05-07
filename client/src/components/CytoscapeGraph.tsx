@@ -530,9 +530,7 @@ export default function CytoscapeGraph() {
         "target-arrow-shape": "none",
         "target-arrow-color": "#64748B",
         "arrow-scale": 1.5,
-        "curve-style": "unbundled-bezier",
-        "control-point-distances": 50,
-        "control-point-weights": 0.5,
+        "curve-style": "straight", // Default to straight lines
       },
     },
     // Style for parallel edges between same nodes (first edge)
@@ -558,10 +556,11 @@ export default function CytoscapeGraph() {
                 (e.data("source") === target && e.data("target") === source),
             );
 
-          // For all normal edges use unbundled-bezier to allow more control
+          // Only use curved edges if there are multiple edges between these nodes
+          // Otherwise keep them straight (default style)
           return parallelEdges.length > 1
             ? "unbundled-bezier"
-            : "unbundled-bezier";
+            : "straight";
         },
         "control-point-distances": function (ele: any) {
           if (ele.data("source") === ele.data("target")) {
@@ -878,16 +877,23 @@ export default function CytoscapeGraph() {
                           (e.data("source") === edge.data("target") &&
                             e.data("target") === edge.data("source")),
                       );
-
-                    // Apply different control points based on edge number
-                    const edgeNumber = edge.data("edgeNumber") || 1;
-                    const controlDistance = edgeNumber === 1 ? -80 : 80;
-
-                    edge.style({
-                      "curve-style": "unbundled-bezier",
-                      "control-point-distances": controlDistance,
-                      "control-point-weights": 0.5,
-                    });
+                    
+                    // Only curve if there are multiple edges between these nodes
+                    if (parallelEdges.length > 1) {
+                      const edgeNumber = edge.data("edgeNumber") || 1;
+                      const controlDistance = edgeNumber === 1 ? -80 : 80;
+                      
+                      edge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": controlDistance,
+                        "control-point-weights": 0.5,
+                      });
+                    } else {
+                      // Keep single edges straight
+                      edge.style({
+                        "curve-style": "straight",
+                      });
+                    }
                   });
                 }
               }}
