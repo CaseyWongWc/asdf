@@ -272,7 +272,7 @@ export default function CytoscapeGraph() {
     },
     // Edge with weight and label style
     {
-      selector: 'edge[weight][!description]',
+      selector: 'edge[weight]',
       style: {
         'label': (ele: any) => {
           const label = ele.data('label');
@@ -283,7 +283,10 @@ export default function CytoscapeGraph() {
           }
           
           return weight.toString();
-        }
+        },
+        'text-background-opacity': 1,
+        'text-background-color': '#ffffff',
+        'text-background-padding': 3
       }
     },
     // Edge with label but no weight style
