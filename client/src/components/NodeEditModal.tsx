@@ -11,6 +11,8 @@ export default function NodeEditModal() {
   const { nodeEditId, setNodeEditId, statusMessage, setStatusMessage, setNodeCount, setEdgeCount } = useContext(GraphContext);
   const [nodeLabel, setNodeLabel] = useState("");
   const [nodeDescription, setNodeDescription] = useState("");
+  const [topText, setTopText] = useState("");
+  const [bottomText, setBottomText] = useState("");
   const [nodeColor, setNodeColor] = useState("#64748b");
   const isMobile = useIsMobile();
   

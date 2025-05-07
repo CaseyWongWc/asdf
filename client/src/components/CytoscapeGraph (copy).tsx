@@ -196,7 +196,7 @@ export default function CytoscapeGraph() {
               // Creating a self-loop
               console.log(`Creating self-loop on node ${nodeId}`);
 
-              // Check if we already have a self-loop
+              // Check if we already have the max number of allowed self-loops
               const existingSelfLoops = cy
                 .edges()
                 .filter(
@@ -205,8 +205,8 @@ export default function CytoscapeGraph() {
                     edge.data("target") === sourceNode,
                 );
 
-              if (existingSelfLoops.length >= 1) {
-                setStatusMessage("A self-loop already exists on this node");
+              if (existingSelfLoops.length >= 2) {
+                setStatusMessage("Two self-loops already exist on this node");
                 sourceNodeElement.removeClass("source-node");
                 setSourceNode(null);
                 return;
@@ -223,24 +223,23 @@ export default function CytoscapeGraph() {
                   label: "",
                   description: "",
                   descriptionPosition: "above",
-                  targetArrow: "triangle",
+                  curveStyle: "bezier",
+                  curvature: 80,
+                  targetArrow: "none",
+                  // Special properties for self-loops
+                  loopDirection: "-45deg", // JFLAP-like loop start angle
+                  loopSweep: "315deg", // JFLAP-like loop arc size
                 },
               });
 
               // Apply styles to the self-loop edge
               selfLoopEdge.style({
-                "target-arrow-shape": "triangle",
-                "target-arrow-color": "#64748B",
+                "target-arrow-shape": "none",
                 "line-style": "solid",
                 "curve-style": "bezier",
-                "loop-direction": "-45deg",
-                "loop-sweep": "315deg",
-                "target-endpoint": "outside-to-node",
-                "source-endpoint": "outside-to-node",
                 "control-point-step-size": 80,
-                "control-point-distances": 120,
-                "control-point-weights": 0.7,
-                "arrow-scale": 1.2,
+                "control-point-distance": 120, // Higher distance for more pronounced curve
+                "control-point-weight": 0.7, // Weight for curve position
               });
 
               console.log(
@@ -252,7 +251,7 @@ export default function CytoscapeGraph() {
               // Creating an edge between two different nodes
               console.log(`Creating edge from ${sourceNode} to ${nodeId}`);
 
-              // Check if an edge already exists between these nodes
+              // Check if we should limit the number of edges between the same nodes
               const existingEdges = cy
                 .edges()
                 .filter(
@@ -261,47 +260,34 @@ export default function CytoscapeGraph() {
                     edge.data("target") === nodeId,
                 );
 
-              if (existingEdges.length >= 1) {
-                console.log(
-                  "An edge already exists between these nodes in this direction",
-                );
+              if (existingEdges.length >= 3) {
+                console.log("Maximum of 3 edges already exist between these nodes");
                 setStatusMessage(
-                  "An edge already exists between these nodes in this direction",
+                  "Maximum of 3 edges allowed between the same nodes",
                 );
               } else {
                 // Add a new edge with directed style
                 try {
-                  // Use existingEdges as our check - which will be 0 at this point
-                  const existingEdgeInDirection = existingEdges;
-
-                  // Check if there's already an edge in the opposite direction
-                  const oppositeEdge = cy
+                  // First, check if there's already an edge in this direction
+                  const existingEdgeInDirection = cy
                     .edges()
                     .filter(
                       (edge: any) =>
-                        edge.data("source") === nodeId &&
-                        edge.data("target") === sourceNode,
+                        edge.data("source") === sourceNode &&
+                        edge.data("target") === nodeId,
                     );
 
-                  // Determine curve style based on whether there are two edges (bidirectional)
-                  // If there's only one edge (this new one), it's straight
-                  // If there will be two edges (bidirectional), they're curved
-                  const willHaveTwoEdges = oppositeEdge.length === 1;
-                  const curveStyle = willHaveTwoEdges
-                    ? "unbundled-bezier"
-                    : "straight";
+                  // Check if there's an edge in the opposite direction (bidirectional relationship)
+                  const oppositeEdge = cy.edges(`[source = "${nodeId}"][target = "${sourceNode}"]`);
+                  const hasBidirectional = oppositeEdge.length > 0;
 
-                  // Apply curve style to opposite edge if it exists - same curve direction
-                  if (willHaveTwoEdges) {
-                    oppositeEdge.style({
-                      "curve-style": "unbundled-bezier",
-                      "control-point-distances": -80, // Both curves go above the straight line
-                      "control-point-weights": 0.5,
-                    });
-                  }
+                  // Automatically use curved style for bidirectional edges, straight for one-way
+                  const curveStyle = hasBidirectional ? "unbundled-bezier" : "straight";
 
-                  // Create control point effect for curved edges - same curve direction
-                  const controlDistance = -80; // Both edges curve above the straight line
+                  // Create stronger gravity effect for parallel edges if using curved style
+                  // First edge has control points above, second below
+                  const controlDistance =
+                    existingEdgeInDirection.length === 0 ? -80 : 80;
 
                   const newEdge = cy.add({
                     group: "edges",
@@ -333,6 +319,49 @@ export default function CytoscapeGraph() {
                   newEdge.data("multiEdgeLabel", multiEdgeLabel);
                   newEdge.data("edgeNumber", edgeNumber);
 
+                  // If there are multiple edges in same direction, offset them slightly
+                  if (existingEdgeInDirection.length > 0) {
+                    // Apply different offsets based on edge number
+                    // First edge at -20, second at +20, third at +60 - creating a fan effect 
+                    let offset;
+
+                    // For multiple edges in same direction, use a simple progression
+                    if (edgeNumber === 1) {
+                      offset = -20;
+                    } else if (edgeNumber === 2) {
+                      offset = 20; 
+                    } else {
+                      offset = 60;
+                    }
+
+                    newEdge.style({
+                      "curve-style": "unbundled-bezier",
+                      "control-point-distances": offset,
+                      "control-point-weights": 0.5,
+                    });
+
+                    // Update existing edges with nice offsets too to ensure no overlapping
+                    // This creates a fan-out pattern for the edges
+                    existingEdgeInDirection.forEach((edge: any, i: number) => {
+                      const oldEdgeNumber = i+1;
+                      let oldOffset;
+
+                      if (oldEdgeNumber === 1) {
+                        oldOffset = -20;
+                      } else if (oldEdgeNumber === 2) {
+                        oldOffset = 20;
+                      } else {
+                        oldOffset = 60;
+                      }
+
+                      edge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": oldOffset,
+                        "control-point-weights": 0.5,
+                      });
+                    });
+                  }
+
                   const styleObj: any = {
                     "target-arrow-shape": "triangle",
                     "target-arrow-color": "#64748B",
@@ -347,6 +376,47 @@ export default function CytoscapeGraph() {
                   }
 
                   newEdge.style(styleObj);
+
+                  // If this created a bidirectional relationship, update both edges for bracket appearance
+                  if (hasBidirectional) {
+                    const sourceId = newEdge.data('source');
+                    const targetId = newEdge.data('target');
+
+                    // Always make the edge going from lower ID to higher ID curve upward
+                    // and the edge going from higher ID to lower ID curve downward
+                    const upwardCurve = 60;   // Positive means curve upward
+                    const downwardCurve = -60; // Negative means curve downward
+
+                    if (sourceId < targetId) {
+                      // Edge going from lower to higher ID curves upward
+                      newEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": upwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+
+                      // Opposite edge curves downward
+                      oppositeEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": downwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+                    } else {
+                      // Edge going from higher to lower ID curves downward
+                      newEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": downwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+
+                      // Opposite edge curves upward
+                      oppositeEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": upwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+                    }
+                  }
 
                   console.log(
                     `Edge created successfully, new edge count: ${cy.edges().length}`,
@@ -542,14 +612,10 @@ export default function CytoscapeGraph() {
       style: {
         width: isMobile ? 3 : 2,
         "line-color": "#64748B",
-        "target-arrow-shape": "triangle",
+        "target-arrow-shape": "none",
         "target-arrow-color": "#64748B",
         "arrow-scale": 1.5,
-        "curve-style": "unbundled-bezier",
-        "control-point-distances": 50,
-        "control-point-weights": 0.5,
-        "target-endpoint": "outside-to-node", // Make arrows end at the node edges
-        "source-endpoint": "outside-to-node", // Make edges start at the node edges
+        "curve-style": "straight", // Default to straight lines
       },
     },
     // Style for parallel edges between same nodes (first edge)
@@ -567,17 +633,29 @@ export default function CytoscapeGraph() {
           const source = ele.data("source");
           const target = ele.data("target");
 
-          const parallelEdges = cy
-            .edges()
-            .filter(
-              (e: any) =>
-                (e.data("source") === source && e.data("target") === target) ||
-                (e.data("source") === target && e.data("target") === source),
-            );
+          // We want to curve only the backward edges in a bidirectional relationship
 
-          // If there's only one edge (regardless of direction), it's straight
-          // If there are two edges (one in each direction), they're curved
-          return parallelEdges.length === 1 ? "straight" : "unbundled-bezier";
+          // To solve the problem, we're going to make a hard decision:
+          // In a bidirectional pair (A→B and B→A), the one that was CREATED SECOND (B→A)
+          // will be curved, and the one CREATED FIRST (A→B) will be straight.
+
+          // This simplistic approach handles it well enough for the graph editor.
+
+          // Check if this is a backward edge by seeing if there's a forward edge
+          // We use the source/target relationship to determine which is which
+
+          // Get the opposite direction edge
+          const oppositeEdge = cy.edges(`[source = "${target}"][target = "${source}"]`);
+
+          // If there is no opposite edge, this can't be a backward edge
+          if (oppositeEdge.length === 0) return "straight";
+
+          // If there is an opposite edge, then THIS edge should be curved if 
+          // it was created second (has a higher ID number)
+
+          // For bidirectional edges, we want both edges to be curved in opposite directions
+          // Creating a bracket-like appearance
+          return "unbundled-bezier";
         },
         "control-point-distances": function (ele: any) {
           if (ele.data("source") === ele.data("target")) {
@@ -588,17 +666,36 @@ export default function CytoscapeGraph() {
           const source = ele.data("source");
           const target = ele.data("target");
 
-          // Get all edges between these nodes
-          const edgesBetween = cy
-            .edges()
-            .filter(
-              (e: any) =>
-                (e.data("source") === source && e.data("target") === target) ||
-                (e.data("source") === target && e.data("target") === source),
-            );
+          // Check for bidirectional relationship
+          const oppositeEdge = cy.edges(`[source = "${target}"][target = "${source}"]`);
 
-          // For bidirectional edges, both curve the same way (above)
-          return -80; // All curves go above the straight line
+          if (oppositeEdge.length > 0) {
+            // This is part of a bidirectional pair - create bracket appearance
+            // Calculate edge IDs to determine which should curve up vs down
+            const thisEdgeId = parseInt(ele.id().replace(/\D/g, ''));
+            const oppositeEdgeId = parseInt(oppositeEdge.id().replace(/\D/g, ''));
+
+            // Create bracket-like appearance - one curves up, one curves down
+            // First created edge curves upward, second created edge curves downward
+            // Using more pronounced curves (±60) for better bracket appearance
+            return thisEdgeId < oppositeEdgeId ? -60 : 60;
+          }
+
+          // For multiple edges in same direction, check how many parallel edges exist
+          const parallelEdges = cy.edges(`[source = "${source}"][target = "${target}"]`);
+
+          if (parallelEdges.length > 1) {
+            // We have multiple edges in same direction
+            const index = parallelEdges.indexOf(ele);
+
+            // Fan out the edges with different offsets (-20, +20, +60)
+            if (index === 0) return -20;
+            if (index === 1) return 20;
+            return 60; // For any additional edges
+          }
+
+          // Default case - no special handling needed (straight edge)
+          return 0;
         },
         "control-point-weights": 0.5,
       },
@@ -637,6 +734,8 @@ export default function CytoscapeGraph() {
         "text-background-opacity": 1,
         "text-background-color": "#ffffff",
         "text-background-padding": 3,
+        "text-rotation": "autorotate", // Make text follow the edge curve
+        "text-margin-y": 0, // Center on the edge line
       },
     },
     // Style for second edge to make it visually distinct
@@ -695,42 +794,43 @@ export default function CytoscapeGraph() {
     },
     // Self-loop edge style - This implements JFLAP-like self-loops
     {
-      selector: "edge[source][target]",
+      selector: "edge",
       style: {
         "curve-style": function (ele: any) {
+          // If the source and target are the same, it's a self-loop
           return ele.data("source") === ele.data("target")
             ? "bezier"
             : ele.style("curve-style");
         },
-        "target-endpoint": function (ele: any) {
-          return "outside-to-node";
-        },
-        "source-endpoint": function (ele: any) {
-          return "outside-to-node";
-        },
         "control-point-step-size": function (ele: any) {
+          // Use a larger control point for self-loops to make them more visible
           return ele.data("source") === ele.data("target")
             ? 80
             : ele.style("control-point-step-size");
         },
-        "control-point-distances": function (ele: any) {
-          return ele.data("source") === ele.data("target")
-            ? 120
-            : ele.style("control-point-distances");
+        "control-point-distance": function (ele: any) {
+          // Only apply to self-loops, gives more pronounced curve like JFLAP
+          return ele.data("source") === ele.data("target") ? 120 : 0;
         },
-        "control-point-weights": function (ele: any) {
-          return ele.data("source") === ele.data("target")
-            ? 0.7
-            : ele.style("control-point-weights");
+        "control-point-weight": function (ele: any) {
+          // Only apply to self-loops, gives more pronounced curve like JFLAP
+          return ele.data("source") === ele.data("target") ? 0.7 : 0.5;
         },
         "loop-direction": function (ele: any) {
-          return ele.data("source") === ele.data("target") ? "-45deg" : "0deg";
+          // Apply JFLAP-inspired loop direction
+          if (ele.data("source") === ele.data("target")) {
+            // Allow custom loop direction as stored in data (or default to -45)
+            return ele.data("loopDirection") || "-45deg";
+          }
+          return "0deg";
         },
         "loop-sweep": function (ele: any) {
-          return ele.data("source") === ele.data("target") ? "315deg" : "0deg";
-        },
-        "arrow-scale": function (ele: any) {
-          return ele.data("source") === ele.data("target") ? 1.2 : 1.5;
+          // Apply JFLAP-inspired loop sweep
+          if (ele.data("source") === ele.data("target")) {
+            // Allow custom loop sweep as stored in data (or default to 315)
+            return ele.data("loopSweep") || "315deg";
+          }
+          return "0deg";
         },
       },
     },
@@ -829,10 +929,66 @@ export default function CytoscapeGraph() {
   // Handle edge deletion
   const deleteEdge = () => {
     if (currentEdge && cyRef.current) {
-      cyRef.current.remove(currentEdge);
+      const cy = cyRef.current;
+
+      // Before deleting, check if this is part of a bidirectional pair
+      const sourceId = currentEdge.data("source");
+      const targetId = currentEdge.data("target");
+
+      // Find any edge going in the opposite direction
+      const oppositeEdge = cy.edges(`[source = "${targetId}"][target = "${sourceId}"]`);
+      const hasBidirectional = oppositeEdge.length > 0;
+
+      // Delete the current edge
+      cy.remove(currentEdge);
+
+      // If there was a bidirectional relationship, fix the opposite edge styling
+      if (hasBidirectional) {
+        // When we remove an edge, if it was part of a bidirectional pair (bracket),
+        // we need to make the remaining edge straight since it no longer needs to be curved
+        oppositeEdge.style({
+          "curve-style": "straight",
+          "control-point-distances": 0 // Reset control point distance for straight edge
+        });
+      }
+
+      // Get all edges in the same direction
+      const parallelEdges = cy.edges(`[source = "${sourceId}"][target = "${targetId}"]`);
+
+      // If there are other parallel edges, reapply their styling with correct offsets
+      if (parallelEdges.length > 0) {
+        parallelEdges.forEach((edge: any, i: number) => {
+          // Update the edge number and label
+          edge.data("edgeNumber", i+1);
+
+          // Apply new offset pattern to ensure no overlapping 
+          let offset;
+          if (i === 0) {
+            offset = -20;
+          } else if (i === 1) {
+            offset = 20;
+          } else {
+            offset = 60;
+          }
+
+          edge.style({
+            "curve-style": "unbundled-bezier",
+            "control-point-distances": offset,
+            "control-point-weights": 0.5
+          });
+
+          const label = edge.data("label") || "";
+          const weight = edge.data("weight") || "";
+          const weightStr = weight ? `(${weight})` : "";
+
+          const multiEdgeLabel = i > 0 ? `(${i+1})` : "";
+          edge.data("multiEdgeLabel", multiEdgeLabel);
+        });
+      }
+
       setCurrentEdge(null);
       setEditEdgeOpen(false);
-      setEdgeCount(cyRef.current.edges().length);
+      setEdgeCount(cy.edges().length);
       setStatusMessage("Edge deleted");
     }
   };
@@ -856,100 +1012,7 @@ export default function CytoscapeGraph() {
         layout={{ name: "preset" }} // Use preset layout to respect node positions
       />
 
-      {/* Edge Style Toggle Control */}
-      {mode === "editor" && (
-        <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex flex-col items-start gap-2 border border-gray-200">
-          <span className="text-sm font-medium whitespace-nowrap">
-            Edge Style:
-          </span>
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant={edgeDisplayStyle === "curved" ? "default" : "outline"}
-              onClick={() => {
-                setEdgeDisplayStyle("curved");
-                setStatusMessage(
-                  "Auto Edge Style: Single edges are straight, bidirectional are curved",
-                );
-
-                // Apply to existing edges
-                if (cyRef.current) {
-                  // First pass: identify bidirectional edges
-                  const nodes = new Map();
-                  cyRef.current.edges().forEach((edge: any) => {
-                    const source = edge.data("source");
-                    const target = edge.data("target");
-
-                    // Skip self-loops
-                    if (source === target) return;
-
-                    const key =
-                      source < target
-                        ? `${source}-${target}`
-                        : `${target}-${source}`;
-                    if (!nodes.has(key)) {
-                      nodes.set(key, { edges: [], count: 0 });
-                    }
-
-                    const info = nodes.get(key);
-                    info.edges.push(edge);
-                    info.count++;
-                  });
-
-                  // Second pass: apply appropriate styles
-                  nodes.forEach(({ edges, count }) => {
-                    const isBidirectional = count > 1;
-
-                    edges.forEach((edge, index) => {
-                      if (isBidirectional) {
-                        // Bidirectional edges are curved - use same direction curve for both
-                        // This makes both edges curve in the same direction instead of opposite
-                        const controlDistance = -80; // Both edges curve above the straight line
-                        edge.style({
-                          "curve-style": "unbundled-bezier",
-                          "control-point-distances": controlDistance,
-                          "control-point-weights": 0.5,
-                        });
-                      } else {
-                        // Single edges are straight
-                        edge.style({
-                          "curve-style": "straight",
-                        });
-                      }
-                    });
-                  });
-                }
-              }}
-            >
-              Auto (Smart)
-            </Button>
-            <Button
-              size="sm"
-              variant={edgeDisplayStyle === "straight" ? "default" : "outline"}
-              onClick={() => {
-                setEdgeDisplayStyle("straight");
-                setStatusMessage("Using all straight edges");
-
-                // Apply to existing edges
-                if (cyRef.current) {
-                  cyRef.current.edges().forEach((edge: any) => {
-                    if (edge.data("source") === edge.data("target")) {
-                      // Don't change self-loops
-                      return;
-                    }
-
-                    edge.style({
-                      "curve-style": "straight",
-                    });
-                  });
-                }
-              }}
-            >
-              All Straight
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* We've removed the manual Edge Style toggle since it's now automatic */}
 
       {/* Edge Edit Dialog */}
       <Dialog open={editEdgeOpen} onOpenChange={setEditEdgeOpen}>
