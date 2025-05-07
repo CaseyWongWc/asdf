@@ -85,12 +85,25 @@ export default function CytoscapeGraph() {
         // Create nodes with timestamp-based IDs to avoid collisions
         for (let i = 0; i < 3; i++) {
           const timestamp = Date.now() + i; // Add index to ensure uniqueness
+          
+          // Create example node with top and bottom text for the first node
+          let nodeData = i === 0 ? 
+            { 
+              id: `n${timestamp}`, 
+              label: 'NODE1',
+              topText: 'im a barbe girl',
+              bottomText: 'in a barbie world'
+            } : 
+            { 
+              id: `n${timestamp}`, 
+              label: `Node ${i+1}`,
+              topText: '',
+              bottomText: ''
+            };
+          
           const node = {
             group: "nodes",
-            data: { 
-              id: `n${timestamp}`, 
-              label: `Node ${i+1}` 
-            },
+            data: nodeData,
             position: positions[i]
           };
           
@@ -159,7 +172,12 @@ export default function CytoscapeGraph() {
             // First add the node with 0 opacity
             const newNode = cy.add({
               group: "nodes",
-              data: { id: nodeId, label: nodeLabel },
+              data: { 
+                id: nodeId, 
+                label: nodeLabel,
+                topText: '',  // Empty top text by default
+                bottomText: '' // Empty bottom text by default
+              },
               position: { x: pos.x, y: pos.y },
               style: { 'opacity': 0 } // Start invisible for animation
             });
@@ -638,53 +656,43 @@ export default function CytoscapeGraph() {
       }
     },
     
-    // Add top-text label as overlay
+    // Style for nodes with top text
     {
-      selector: "node[topText]",
+      selector: "node[topText][^topText='']",
       style: {
-        "overlay-padding": 5,
-        "overlay-opacity": 0,
-        "overlay-color": "#000",
-      }
-    },
-    
-    // Top text with ::before pseudo element
-    {
-      selector: "node[topText]",
-      style: {
-        // Special top text styling using source-label
+        // We use source-label to position text above the node
         "source-label": "data(topText)",
         "source-text-offset": 0,
-        "source-text-margin-y": -25,
+        "source-text-margin-y": -35,
+        "source-text-opacity": 1,
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
         "text-background-shape": "roundrectangle",
-        "text-background-padding": 2,
-        "source-text-rotation": "autorotate",
+        "text-background-padding": 3,
         "font-size": isMobile ? "12px" : "10px",
         "color": "#E2E8F0",
         "text-wrap": "wrap",
-        "text-max-width": 120,
+        "text-max-width": 150
       }
     },
     
-    // Bottom text with ::after pseudo element
+    // Style for nodes with bottom text
     {
-      selector: "node[bottomText]",
+      selector: "node[bottomText][^bottomText='']",
       style: {
-        // Special bottom text styling using target-label
+        // We use target-label to position text below the node
         "target-label": "data(bottomText)",
         "target-text-offset": 0,
-        "target-text-margin-y": 25,
+        "target-text-margin-y": 35,
+        "target-text-opacity": 1,
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
         "text-background-shape": "roundrectangle",
-        "text-background-padding": 2,
-        "target-text-rotation": "autorotate",
+        "text-background-padding": 3,
         "font-size": isMobile ? "12px" : "10px",
         "color": "#E2E8F0",
         "text-wrap": "wrap",
-        "text-max-width": 120,
+        "text-max-width": 150
       }
     },
     // Basic edge style

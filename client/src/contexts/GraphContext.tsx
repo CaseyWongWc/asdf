@@ -120,7 +120,9 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
         data: { 
           id, 
           label: nodeLabel,
-          description: `Node ${nextId}`
+          description: `Node ${nextId}`,
+          topText: '',
+          bottomText: ''
         },
         position: { x: validX, y: validY }
       };
