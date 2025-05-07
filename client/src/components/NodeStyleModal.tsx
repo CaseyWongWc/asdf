@@ -112,8 +112,45 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
     if (nodeLabel.trim()) {
       node.data('label', nodeLabel.trim());
     }
+    
+    // Store the text values in node data
     node.data('topText', topText.trim());
     node.data('bottomText', bottomText.trim());
+    
+    // Get node position and ID for creating text edges
+    const nodeId = node.id();
+    
+    // Remove existing text edges
+    window.cy.elements(`.top-text-edge[source="${nodeId}"]`).remove();
+    window.cy.elements(`.bottom-text-edge[source="${nodeId}"]`).remove();
+    
+    // Create top text edge if needed
+    if (topText.trim()) {
+      window.cy.add({
+        group: 'edges',
+        data: {
+          id: `top-text-${nodeId}`,
+          source: nodeId,
+          target: nodeId,
+          label: topText.trim()
+        },
+        classes: 'top-text-edge'
+      });
+    }
+    
+    // Create bottom text edge if needed
+    if (bottomText.trim()) {
+      window.cy.add({
+        group: 'edges',
+        data: {
+          id: `bottom-text-${nodeId}`,
+          source: nodeId,
+          target: nodeId, 
+          label: bottomText.trim()
+        },
+        classes: 'bottom-text-edge'
+      });
+    }
 
     setStatusMessage(`Node styling updated`);
     onOpenChange(false);
@@ -137,6 +174,13 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       'text-outline-width': '1px',
       'text-outline-color': '#4299E1'
     });
+    
+    // Get the node ID
+    const nodeId = node.id();
+    
+    // Remove existing text edges
+    window.cy.elements(`.top-text-edge[source="${nodeId}"]`).remove();
+    window.cy.elements(`.bottom-text-edge[source="${nodeId}"]`).remove();
     
     // Reset node text data
     node.data('topText', '');

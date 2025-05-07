@@ -112,6 +112,34 @@ export default function CytoscapeGraph() {
               duration: 300,
               easing: 'ease-in-out'
             });
+            
+          // Create top text edge for the first node only
+          if (i === 0 && nodeData.topText && nodeData.topText.trim()) {
+            cy.add({
+              group: 'edges',
+              data: {
+                id: `top-text-n${timestamp}`,
+                source: `n${timestamp}`,
+                target: `n${timestamp}`,
+                label: nodeData.topText
+              },
+              classes: 'top-text-edge'
+            });
+          }
+          
+          // Create bottom text edge for the first node only
+          if (i === 0 && nodeData.bottomText && nodeData.bottomText.trim()) {
+            cy.add({
+              group: 'edges',
+              data: {
+                id: `bottom-text-n${timestamp}`,
+                source: `n${timestamp}`,
+                target: `n${timestamp}`,
+                label: nodeData.bottomText
+              },
+              classes: 'bottom-text-edge'
+            });
+          }
         }
 
         // Update node count in context
@@ -645,47 +673,48 @@ export default function CytoscapeGraph() {
       },
     },
     
-    // Style for nodes with top text
+    // Using overlays for nodes with text
     {
-      selector: 'node[topText]',
+      selector: 'node',
       style: {
-        // Position text above the node using source-label
-        "source-label": function(ele: any) {
-          // Only show if not empty
-          const topText = ele.data('topText');
-          return topText && topText.length > 0 ? topText : '';
-        },
-        "source-text-offset": 0,
-        "source-text-margin-y": -35,
-        "source-text-opacity": 1,
-        "source-text-background-opacity": 0.7,
-        "source-text-background-color": "#EDF2F7",
-        "source-text-background-shape": "roundrectangle",
-        "source-text-background-padding": 3,
-        "source-text-color": "#1A202C", // Dark text for better readability
-        "source-text-wrap": "wrap"
+        'overlay-opacity': 0, // Invisible overlay
+        'overlay-padding': 20, // Add some padding to make space for text
       }
     },
     
-    // Style for nodes with bottom text
+    // Using manual edges for top/bottom text
     {
-      selector: 'node[bottomText]',
+      selector: '.top-text-edge',
       style: {
-        // Position text below the node using target-label
-        "target-label": function(ele: any) {
-          // Only show if not empty
-          const bottomText = ele.data('bottomText');
-          return bottomText && bottomText.length > 0 ? bottomText : '';
-        },
-        "target-text-offset": 0,
-        "target-text-margin-y": 35,
-        "target-text-opacity": 1,
-        "target-text-background-opacity": 0.7,
-        "target-text-background-color": "#EDF2F7",
-        "target-text-background-shape": "roundrectangle",
-        "target-text-background-padding": 3,
-        "target-text-color": "#1A202C", // Dark text for better readability
-        "target-text-wrap": "wrap"
+        'width': 0, // Invisible edge
+        'curve-style': 'straight',
+        'label': 'data(label)',
+        'text-rotation': 'autorotate',
+        'text-margin-y': -10,
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'color': '#1A202C',
+        'font-size': '12px',
+        'text-background-opacity': 0.7,
+        'text-background-color': '#EDF2F7'
+      }
+    },
+    
+    // Bottom text with similar approach
+    {
+      selector: '.bottom-text-edge',
+      style: {
+        'width': 0, // Invisible edge
+        'curve-style': 'straight',
+        'label': 'data(label)',
+        'text-rotation': 'autorotate',
+        'text-margin-y': 10,
+        'text-valign': 'bottom',
+        'text-halign': 'center',
+        'color': '#1A202C',
+        'font-size': '12px',
+        'text-background-opacity': 0.7,
+        'text-background-color': '#EDF2F7'
       }
     },
     // Basic edge style
