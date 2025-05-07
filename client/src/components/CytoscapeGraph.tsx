@@ -245,20 +245,53 @@ export default function CytoscapeGraph() {
                 setStatusMessage('Two edges already exist for these two same nodes');
               } else {
                 // Add a new edge with directed style
+                // Check if there's already an edge in this direction
+                const existingEdgeInDirection = cy.edges().filter(
+                  (edge: any) => (
+                    edge.data('source') === sourceNode && edge.data('target') === nodeId
+                  )
+                );
+                
+                // Check if there's an edge in the opposite direction
+                const existingEdgeInOppositeDirection = cy.edges().filter(
+                  (edge: any) => (
+                    edge.data('source') === nodeId && edge.data('target') === sourceNode
+                  )
+                );
+                
+                // Detect if we're creating a bidirectional relationship
+                const isCreatingBidirectional = existingEdgeInOppositeDirection.length > 0;
+                
+                // Use the selected edge display style
+                const curveStyle = edgeDisplayStyle === 'curved' ? 'unbundled-bezier' : 'straight';
+                
+                // Create stronger gravity effect for parallel edges if using curved style
+                // First edge has control points above, second below
+                const controlDistance = existingEdgeInDirection.length === 0 ? -80 : 80;
+                
                 try {
-                  // First, check if there's already an edge in this direction
-                  const existingEdgeInDirection = cy.edges().filter(
-                    (edge: any) => (
-                      edge.data('source') === sourceNode && edge.data('target') === nodeId
-                    )
-                  );
+                  // If we're creating a bidirectional relationship, update the existing edge in the opposite direction
+                  if (isCreatingBidirectional) {
+                    console.log('Creating bidirectional relationship');
+                    
+                    // Mark the existing edge as part of a bidirectional relationship
+                    const oppositeEdge = existingEdgeInOppositeDirection[0];
+                    oppositeEdge.data('isBidirectional', true);
+                    
+                    // Update styling of the opposite direction edge to indicate it's bidirectional
+                    if (edgeDisplayStyle === 'curved') {
+                      oppositeEdge.style({
+                        'curve-style': 'unbundled-bezier',
+                        'control-point-distances': 80, // Curve downward
+                        'control-point-weights': 0.5,
+                        'target-arrow-color': '#3182CE', // Blue to indicate bidirectional
+                        'line-color': '#3182CE'
+                      });
+                    }
+                  }
                   
-                  // Use the selected edge display style
-                  const curveStyle = edgeDisplayStyle === 'curved' ? 'unbundled-bezier' : 'straight';
-                  
-                  // Create stronger gravity effect for parallel edges if using curved style
-                  // First edge has control points above, second below
-                  const controlDistance = existingEdgeInDirection.length === 0 ? -80 : 80;
+                  // Also mark the new edge as bidirectional if applicable
+                  const isBidirectional = isCreatingBidirectional;
                   
                   const newEdge = cy.add({
                     group: 'edges',
@@ -274,7 +307,9 @@ export default function CytoscapeGraph() {
                       curvature: 40,
                       targetArrow: 'triangle',
                       // Store this info for parallel edge detection
-                      parallelIndex: existingEdgeInDirection.length
+                      parallelIndex: existingEdgeInDirection.length,
+                      // Mark if this is part of a bidirectional pair
+                      isBidirectional: isBidirectional
                     }
                   });
                   
@@ -288,12 +323,25 @@ export default function CytoscapeGraph() {
                   newEdge.data('multiEdgeLabel', multiEdgeLabel);
                   newEdge.data('edgeNumber', edgeNumber);
                   
+                  // Set up styling for the new edge
                   const styleObj: any = {
                     'target-arrow-shape': 'triangle',
-                    'target-arrow-color': '#64748B',
                     'line-style': lineStyle,
                     'curve-style': curveStyle
                   };
+                  
+                  // Style bidirectional edges differently
+                  if (isBidirectional) {
+                    styleObj['target-arrow-color'] = '#3182CE'; // Blue arrows
+                    styleObj['line-color'] = '#3182CE'; // Blue lines
+                    
+                    // If using a status message, indicate this is bidirectional
+                    setStatusMessage(`Created bidirectional edge relationship`);
+                  } else {
+                    styleObj['target-arrow-color'] = '#64748B'; // Default gray
+                    styleObj['line-color'] = '#64748B';
+                    setStatusMessage(`Created directed edge with weight 1`);
+                  }
                   
                   // Only add control points if using curved style
                   if (curveStyle === 'unbundled-bezier') {
@@ -305,7 +353,6 @@ export default function CytoscapeGraph() {
                   
                   console.log(`Edge created successfully, new edge count: ${cy.edges().length}`);
                   setEdgeCount(cy.edges().length);
-                  setStatusMessage(`Created directed edge with weight 1`);
                 } catch (error) {
                   console.error('Error creating edge:', error);
                   setStatusMessage('Error creating edge');
@@ -567,6 +614,16 @@ export default function CytoscapeGraph() {
         'line-style': 'dashed',
         'line-dash-pattern': [6, 3],
         'line-color': '#805AD5' // Purple to distinguish from first edge
+      }
+    },
+    // Special style for bidirectional edges
+    {
+      selector: 'edge[isBidirectional]',
+      style: {
+        'line-color': '#3182CE', // Blue for bidirectional
+        'target-arrow-color': '#3182CE', // Blue arrows
+        'width': isMobile ? 3 : 2.5, // Slightly thicker
+        'arrow-scale': 1.7 // Slightly larger arrows
       }
     },
     // Edge with label but no weight style
