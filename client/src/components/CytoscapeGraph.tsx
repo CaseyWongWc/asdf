@@ -240,6 +240,21 @@ export default function CytoscapeGraph() {
               } else {
                 // Add a new edge with directed style
                 try {
+                  // First, check if there's already an edge in this direction
+                  const existingEdgeInDirection = cy.edges().filter(
+                    (edge: any) => (
+                      edge.data('source') === sourceNode && edge.data('target') === nodeId
+                    )
+                  );
+                  
+                  // Use unbundled-bezier curve style for parallel edges
+                  const useBezier = existingEdgeInDirection.length === 0;
+                  const curveStyle = useBezier ? 'bezier' : 'unbundled-bezier';
+                  
+                  // Create a gravity effect for parallel edges
+                  // First edge has control points above, second below
+                  const controlDistance = existingEdgeInDirection.length === 0 ? -50 : 50;
+                  
                   const newEdge = cy.add({
                     group: 'edges',
                     data: { 
@@ -250,20 +265,33 @@ export default function CytoscapeGraph() {
                       label: '',
                       description: '',
                       descriptionPosition: 'above',
-                      curveStyle: 'bezier',
+                      curveStyle: curveStyle,
                       curvature: 40,
-                      targetArrow: 'triangle'
+                      targetArrow: 'triangle',
+                      // Store this info for parallel edge detection
+                      parallelIndex: existingEdgeInDirection.length
                     }
                   });
                   
                   // Apply styles to the new edge
-                  newEdge.style({
-                    'target-arrow-shape': 'triangle',
-                    'target-arrow-color': '#64748B',
-                    'line-style': 'solid',
-                    'curve-style': 'bezier',
-                    'control-point-step-size': 40
-                  });
+                  if (curveStyle === 'bezier') {
+                    newEdge.style({
+                      'target-arrow-shape': 'triangle',
+                      'target-arrow-color': '#64748B',
+                      'line-style': 'solid',
+                      'curve-style': 'bezier',
+                      'control-point-step-size': 40
+                    });
+                  } else {
+                    newEdge.style({
+                      'target-arrow-shape': 'triangle',
+                      'target-arrow-color': '#64748B',
+                      'line-style': 'solid',
+                      'curve-style': 'unbundled-bezier',
+                      'control-point-distances': controlDistance,
+                      'control-point-weights': 0.5
+                    });
+                  }
                   
                   console.log(`Edge created successfully, new edge count: ${cy.edges().length}`);
                   setEdgeCount(cy.edges().length);
@@ -434,9 +462,59 @@ export default function CytoscapeGraph() {
         'target-arrow-shape': 'none',
         'target-arrow-color': '#64748B',
         'arrow-scale': 1.5,
-        'curve-style': 'bezier',
-        'control-point-step-size': 40,
-        'control-point-weight': 0.5
+        'curve-style': 'unbundled-bezier',
+        'control-point-distances': 50,
+        'control-point-weights': 0.5
+      }
+    },
+    // Style for parallel edges between same nodes (first edge)
+    {
+      selector: 'edge[source][target]',
+      style: {
+        'curve-style': function(ele: any) {
+          // Don't apply to self-loops
+          if (ele.data('source') === ele.data('target')) {
+            return 'bezier';
+          }
+          
+          // Count how many edges there are between these two nodes
+          const cy = ele.cy();
+          const source = ele.data('source');
+          const target = ele.data('target');
+          
+          const parallelEdges = cy.edges().filter((e: any) => 
+            (e.data('source') === source && e.data('target') === target) ||
+            (e.data('source') === target && e.data('target') === source)
+          );
+          
+          if (parallelEdges.length > 1) {
+            return 'unbundled-bezier';
+          }
+          
+          return 'bezier';
+        },
+        'control-point-distances': function(ele: any) {
+          if (ele.data('source') === ele.data('target')) {
+            return 120; // Self-loops get special treatment
+          }
+          
+          const cy = ele.cy();
+          const source = ele.data('source');
+          const target = ele.data('target');
+          
+          // Get all edges between these nodes
+          const edgesBetween = cy.edges().filter((e: any) => 
+            (e.data('source') === source && e.data('target') === target) ||
+            (e.data('source') === target && e.data('target') === source)
+          );
+          
+          // Get index of current edge
+          const index = edgesBetween.indexOf(ele);
+          
+          // Apply gravity effect based on index
+          return index === 0 ? -50 : 50; // First edge above, second edge below
+        },
+        'control-point-weights': 0.5
       }
     },
     // Edge label style
