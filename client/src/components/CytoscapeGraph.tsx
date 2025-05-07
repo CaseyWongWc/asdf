@@ -265,6 +265,49 @@ export default function CytoscapeGraph() {
       setStatusMessage(`Edge updated`);
     }
   };
+  
+  // Handle reversing the edge direction
+  const reverseEdge = () => {
+    if (currentEdge && cyRef.current) {
+      const sourceId = currentEdge.data('source');
+      const targetId = currentEdge.data('target');
+      
+      // Store the edge properties
+      const edgeId = currentEdge.id();
+      const label = currentEdge.data('label');
+      const weight = currentEdge.data('weight');
+      
+      // Remove the old edge
+      currentEdge.remove();
+      
+      // Create a new edge with reversed direction
+      const newEdge = cyRef.current.add({
+        group: 'edges',
+        data: {
+          id: edgeId,
+          source: targetId,
+          target: sourceId,
+          weight: weight,
+          label: label
+        }
+      });
+      
+      // Apply the same styling
+      if (isDirected) {
+        newEdge.style({
+          'target-arrow-shape': 'triangle',
+          'target-arrow-color': '#64748B'
+        });
+      }
+      
+      setCurrentEdge(newEdge);
+      
+      // Update the dialog's from/to fields by forcing a re-render
+      const fromLabel = cyRef.current.getElementById(targetId).data('label');
+      const toLabel = cyRef.current.getElementById(sourceId).data('label');
+      setStatusMessage(`Edge direction reversed: now ${fromLabel} → ${toLabel}`);
+    }
+  };
 
   // Handle edge deletion from dialog
   const deleteEdge = () => {
@@ -354,6 +397,22 @@ export default function CytoscapeGraph() {
                   <label htmlFor="directed-toggle" className="text-sm font-medium text-gray-700">
                     Directed Edge (show arrow)
                   </label>
+                </div>
+
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    className="w-full p-2 border border-orange-400 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 flex items-center justify-center"
+                    onClick={() => {
+                      reverseEdge();
+                      // Keep the dialog open to show the change
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                    Reverse Edge Direction
+                  </button>
                 </div>
               </div>
             )}
