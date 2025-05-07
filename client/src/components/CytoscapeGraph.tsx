@@ -129,7 +129,8 @@ export default function CytoscapeGraph() {
                     description: '', // Initialize with empty description
                     descriptionPosition: 'above', // Default position
                     curveStyle: 'bezier', // Default to bezier curves
-                    curvature: 40 // Default curvature
+                    curvature: 40, // Default curvature
+                    targetArrow: 'none' // Default to undirected (no arrow)
                   }
                 }).style({
                   'target-arrow-shape': 'none',  // No arrow by default (undirected)
@@ -296,18 +297,18 @@ export default function CytoscapeGraph() {
         'label': 'data(label)'
       }
     },
-    // Edge with description style
+    // Edge with description - always show at source node
     {
-      selector: 'edge[description][descriptionPosition="above"]',
+      selector: 'edge[description]',
       style: {
         'source-label': 'data(description)',
         'source-text-offset': 15,
         'source-text-margin-y': -10
       }
     },
-    // Edge with description below
+    // For directed edges, also show at target if position is set to "below"
     {
-      selector: 'edge[description][descriptionPosition="below"]',
+      selector: 'edge[description][targetArrow="triangle"]',
       style: {
         'target-label': 'data(description)',
         'target-text-offset': 15,
@@ -346,8 +347,10 @@ export default function CytoscapeGraph() {
       if (isDirected) {
         styleObj['target-arrow-shape'] = 'triangle';
         styleObj['target-arrow-color'] = '#64748B';
+        currentEdge.data('targetArrow', 'triangle');
       } else {
         styleObj['target-arrow-shape'] = 'none';
+        currentEdge.data('targetArrow', 'none');
       }
       
       // Save curvature data for persistence
@@ -391,6 +394,7 @@ export default function CytoscapeGraph() {
       const descPosition = currentEdge.data('descriptionPosition');
       const curveStyle = currentEdge.data('curveStyle') || edgeCurve;
       const curvature = currentEdge.data('curvature') || edgeCurvature;
+      const targetArrow = isDirected ? 'triangle' : 'none';
       
       // Store the current styling
       const currentLineStyle = currentEdge.style('line-style');
@@ -410,7 +414,8 @@ export default function CytoscapeGraph() {
           description: description,
           descriptionPosition: descPosition,
           curveStyle: curveStyle,
-          curvature: curvature
+          curvature: curvature,
+          targetArrow: targetArrow
         }
       });
       
@@ -424,8 +429,10 @@ export default function CytoscapeGraph() {
       if (isDirected) {
         styleObj['target-arrow-shape'] = 'triangle';
         styleObj['target-arrow-color'] = '#64748B';
+        newEdge.data('targetArrow', 'triangle'); // Add data attribute for selector
       } else {
         styleObj['target-arrow-shape'] = 'none';
+        newEdge.data('targetArrow', 'none'); // Add data attribute for selector
       }
       
       newEdge.style(styleObj);
