@@ -548,17 +548,19 @@ export default function CytoscapeGraph() {
           const source = ele.data("source");
           const target = ele.data("target");
 
-          const parallelEdges = cy
+          // We only want to detect edges going in opposite directions
+          // Not all edges between these two nodes
+          const oppositeDirectionEdges = cy
             .edges()
             .filter(
               (e: any) =>
-                (e.data("source") === source && e.data("target") === target) ||
-                (e.data("source") === target && e.data("target") === source),
+                (e.data("source") === source && e.data("target") === target) && 
+                cy.edges(`[source = "${target}"][target = "${source}"]`).length > 0
             );
 
-          // Only use curved edges if there are multiple edges between these nodes
+          // Only use curved edges if there are bidirectional edges
           // Otherwise keep them straight (default style)
-          return parallelEdges.length > 1
+          return oppositeDirectionEdges.length > 0
             ? "unbundled-bezier"
             : "straight";
         },
@@ -867,19 +869,13 @@ export default function CytoscapeGraph() {
                       return;
                     }
 
-                    // Get any existing parallel edges
-                    const parallelEdges = cyRef.current
-                      .edges()
-                      .filter(
-                        (e: any) =>
-                          (e.data("source") === edge.data("source") &&
-                            e.data("target") === edge.data("target")) ||
-                          (e.data("source") === edge.data("target") &&
-                            e.data("target") === edge.data("source")),
-                      );
+                    // Check for bidirectional edges (edges going in both directions)
+                    const source = edge.data("source");
+                    const target = edge.data("target");
+                    const hasBidirectional = cyRef.current.edges(`[source = "${target}"][target = "${source}"]`).length > 0;
                     
-                    // Only curve if there are multiple edges between these nodes
-                    if (parallelEdges.length > 1) {
+                    // Only curve if there's a matching edge in the opposite direction
+                    if (hasBidirectional) {
                       const edgeNumber = edge.data("edgeNumber") || 1;
                       const controlDistance = edgeNumber === 1 ? -80 : 80;
                       
