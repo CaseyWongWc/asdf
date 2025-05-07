@@ -30,7 +30,7 @@ export default function CytoscapeGraph() {
   const [edgeCurve, setEdgeCurve] = useState<'straight' | 'bezier'>('bezier'); 
   const [edgeCurvature, setEdgeCurvature] = useState<number>(40); // Control point step size
 
-  // Setup Cytoscape instance and register the appropriate event handlers based on mode
+  // Setup Cytoscape instance and initial nodes
   useEffect(() => {
     if (cyRef.current) {
       // Store reference to the Cytoscape instance
@@ -65,13 +65,32 @@ export default function CytoscapeGraph() {
         
         // Update node count in context
         setNodeCount(cy.nodes().length);
-
-        // Background click event for adding new nodes (only in editor mode)
+        setEdgeCount(cy.edges().length);
+      }, 500);
+      
+      // Cleanup function
+      return () => {
+        cy.removeAllListeners(); // Remove all registered event listeners
+      };
+    }
+  }, [setStatusMessage, setNodeCount, setEdgeCount]);
+  
+  // Setup mode-specific event handlers
+  useEffect(() => {
+    if (cyRef.current) {
+      const cy = cyRef.current;
+      
+      // Remove any existing event handlers
+      cy.removeAllListeners();
+      
+      console.log(`Setting up ${mode} mode event handlers`);
+      
+      if (mode === 'editor') {
+        // EDITOR MODE HANDLERS
+        
+        // Background click handler for node creation
         cy.on('tap', function(event: any) {
-          // Only handle clicks on the background (not on nodes/edges) and only in editor mode
           if (event.target === cy) {
-            console.log('Background tap in Cytoscape detected', event.position);
-            
             if (sourceNode) {
               // Deselect source node if one is selected
               cy.getElementById(sourceNode).removeClass('source-node');
@@ -80,40 +99,32 @@ export default function CytoscapeGraph() {
               return;
             }
             
-            // Only create new nodes in editor mode
-            if (mode === 'editor') {
-              // Get the position where the user clicked
-              const pos = event.position;
-              
-              // Create a new node
-              const nodeId = `n${Date.now()}`;
-              const nodeLabel = `Node ${cy.nodes().length + 1}`;
-              
-              cy.add({
-                group: 'nodes',
-                data: { id: nodeId, label: nodeLabel },
-                position: { x: pos.x, y: pos.y }
-              });
-              
-              setNodeCount(cy.nodes().length);
-              setStatusMessage(`Created ${nodeLabel}`);
-            } else {
-              setStatusMessage('Node creation disabled in algorithm mode');
-            }
+            // Create new node at click position
+            const pos = event.position;
+            const nodeId = `n${Date.now()}`;
+            const nodeLabel = `Node ${cy.nodes().length + 1}`;
+            
+            cy.add({
+              group: 'nodes',
+              data: { id: nodeId, label: nodeLabel },
+              position: { x: pos.x, y: pos.y }
+            });
+            
+            setNodeCount(cy.nodes().length);
+            setStatusMessage(`Created ${nodeLabel}`);
           }
         });
         
-        // Node click events for edge creation
+        // Node click handler for edge creation
         cy.on('tap', 'node', function(event: any) {
           const node = event.target;
-          console.log('Node tap in Cytoscape detected', node.id());
           
           if (sourceNode) {
             // Create an edge if a source node was already selected
             if (sourceNode !== node.id()) {
               const edgeId = `e${Date.now()}`;
               
-              // Check if an edge already exists between these nodes (in either direction)
+              // Check if an edge already exists between these nodes
               const existingEdge = cy.edges().filter(
                 (edge: any) => (
                   (edge.data('source') === sourceNode && edge.data('target') === node.id()) ||
@@ -125,23 +136,23 @@ export default function CytoscapeGraph() {
                 setStatusMessage('Edge already exists between these nodes');
               } else {
                 // Add a new edge (undirected by default)
-                const newEdge = cy.add({
+                cy.add({
                   group: 'edges',
                   data: { 
                     id: edgeId, 
                     source: sourceNode, 
                     target: node.id(),
                     weight: 1,
-                    label: '',  // Initialize with empty label
-                    description: '', // Initialize with empty description
-                    descriptionPosition: 'above', // Default position
-                    curveStyle: 'bezier', // Default to bezier curves
-                    curvature: 40, // Default curvature
-                    targetArrow: 'none' // Default to undirected (no arrow)
+                    label: '',
+                    description: '',
+                    descriptionPosition: 'above',
+                    curveStyle: 'bezier',
+                    curvature: 40,
+                    targetArrow: 'none'
                   }
                 }).style({
-                  'target-arrow-shape': 'none',  // No arrow by default (undirected)
-                  'line-style': 'solid', // Default solid line
+                  'target-arrow-shape': 'none',
+                  'line-style': 'solid',
                   'curve-style': 'bezier',
                   'control-point-step-size': 40
                 });
@@ -167,7 +178,7 @@ export default function CytoscapeGraph() {
           }
         });
         
-        // Edge click to edit
+        // Edge click handler for edge editing
         cy.on('tap', 'edge', function(event: any) {
           const edge = event.target;
           // Only handle edge taps if no source node is selected
@@ -202,7 +213,7 @@ export default function CytoscapeGraph() {
           }
         });
         
-        // Right-click to delete
+        // Right-click handler for element deletion
         cy.on('cxttap', 'node, edge', function(event: any) {
           const ele = event.target;
           const type = ele.isNode() ? 'Node' : 'Edge';
@@ -223,14 +234,44 @@ export default function CytoscapeGraph() {
           setEdgeCount(cy.edges().length);
           setStatusMessage(`${type} ${label} deleted`);
         });
-      }, 500);
-      
-      // Cleanup function
-      return () => {
-        cy.removeAllListeners(); // Remove all registered event listeners
-      };
+      } else {
+        // ALGORITHM MODE HANDLERS
+        
+        // Node click handler for algorithm visualization 
+        cy.on('tap', 'node', function(event: any) {
+          const node = event.target;
+          setStatusMessage(`Selected node "${node.data('label')}" for algorithm`);
+          
+          // We could set this as a start/end node for algorithms
+          if (!sourceNode) {
+            node.addClass('algorithm-start-node');
+            setSourceNode(node.id());
+          } else if (sourceNode !== node.id()) {
+            // Could be used to select an end node for path algorithms
+            cy.getElementById(sourceNode).removeClass('algorithm-start-node');
+            setSourceNode(node.id());
+            node.addClass('algorithm-start-node');
+          } else {
+            // Deselect if clicking the same node
+            node.removeClass('algorithm-start-node');
+            setSourceNode(null);
+          }
+        });
+        
+        // Edge click handler (simple selection for algorithm)
+        cy.on('tap', 'edge', function(event: any) {
+          const edge = event.target;
+          const source = cy.getElementById(edge.data('source')).data('label');
+          const target = cy.getElementById(edge.data('target')).data('label');
+          const weight = edge.data('weight') || '';
+          
+          setStatusMessage(`Selected edge from ${source} to ${target}${weight ? ' with weight ' + weight : ''}`);
+        });
+      }
     }
-  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setEdgeDescription, setDescriptionPosition, setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle, setEdgeCurve, setEdgeCurvature]);
+  }, [mode, sourceNode, setSourceNode, setNodeCount, setEdgeCount, setStatusMessage, 
+      setCurrentEdge, setEdgeWeight, setEdgeLabel, setEdgeDescription, setDescriptionPosition, 
+      setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle, setEdgeCurve, setEdgeCurvature]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -331,6 +372,15 @@ export default function CytoscapeGraph() {
       style: {
         'border-width': '2px',
         'border-color': '#059669'
+      }
+    },
+    // Algorithm start node style
+    {
+      selector: '.algorithm-start-node',
+      style: {
+        'border-width': '3px',
+        'border-color': '#E53E3E',
+        'background-color': '#FC8181'
       }
     }
   ];
