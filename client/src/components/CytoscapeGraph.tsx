@@ -20,6 +20,8 @@ export default function CytoscapeGraph() {
   const [currentEdge, setCurrentEdge] = useState<any>(null);
   const [edgeWeight, setEdgeWeight] = useState<number>(1);
   const [edgeLabel, setEdgeLabel] = useState('');
+  const [edgeDescription, setEdgeDescription] = useState('');
+  const [descriptionPosition, setDescriptionPosition] = useState<'above' | 'below'>('above');
   const [isDirected, setIsDirected] = useState(false);
   const [hasWeight, setHasWeight] = useState(true);
   const [edgeStyle, setEdgeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
@@ -120,10 +122,13 @@ export default function CytoscapeGraph() {
                     source: sourceNode, 
                     target: node.id(),
                     weight: 1,
-                    label: ''  // Initialize with empty label
+                    label: '',  // Initialize with empty label
+                    description: '', // Initialize with empty description
+                    descriptionPosition: 'above' // Default position
                   }
                 }).style({
-                  'target-arrow-shape': 'none'  // No arrow by default (undirected)
+                  'target-arrow-shape': 'none',  // No arrow by default (undirected)
+                  'line-style': 'solid' // Default solid line
                 });
                 
                 setEdgeCount(cy.edges().length);
@@ -161,6 +166,10 @@ export default function CytoscapeGraph() {
             setEdgeWeight(isWeightless ? 1 : weight);
             setHasWeight(!isWeightless);
             setEdgeLabel(edge.data('label') || '');
+            
+            // Get the description and position if they exist
+            setEdgeDescription(edge.data('description') || '');
+            setDescriptionPosition(edge.data('descriptionPosition') || 'above');
             
             // Check if the edge has an arrow (is directed)
             setIsDirected(edge.style('target-arrow-shape') !== 'none');
@@ -201,7 +210,7 @@ export default function CytoscapeGraph() {
         cy.removeAllListeners(); // Remove all registered event listeners
       };
     }
-  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle]);
+  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setEdgeDescription, setDescriptionPosition, setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -253,7 +262,45 @@ export default function CytoscapeGraph() {
         'text-rotation': 'none',
         'text-valign': 'center',
         'text-halign': 'center',
-        'color': '#1a202c' // Darker text color
+        'color': '#1a202c', // Darker text color
+        'source-text-offset': (ele: any) => {
+          // Only apply if description exists and is set to position 'above'
+          const desc = ele.data('description');
+          const pos = ele.data('descriptionPosition');
+          if (desc && desc.length > 0 && pos === 'above') {
+            return 15;
+          }
+          return 0;
+        },
+        'source-text-margin-y': -5, // Small offset to ensure clean spacing
+        'source-label': (ele: any) => {
+          // If description exists and is set to position 'above', show it
+          const desc = ele.data('description');
+          const pos = ele.data('descriptionPosition');
+          if (desc && desc.length > 0 && pos === 'above') {
+            return desc;
+          }
+          return '';
+        },
+        'target-text-offset': (ele: any) => {
+          // Only apply if description exists and is set to position 'below'
+          const desc = ele.data('description');
+          const pos = ele.data('descriptionPosition');
+          if (desc && desc.length > 0 && pos === 'below') {
+            return 15;
+          }
+          return 0;
+        },
+        'target-text-margin-y': 5, // Small offset to ensure clean spacing
+        'target-label': (ele: any) => {
+          // If description exists and is set to position 'below', show it
+          const desc = ele.data('description');
+          const pos = ele.data('descriptionPosition');
+          if (desc && desc.length > 0 && pos === 'below') {
+            return desc;
+          }
+          return '';
+        }
       }
     },
     {
@@ -271,6 +318,10 @@ export default function CytoscapeGraph() {
       // Update edge data based on whether it has weight or not
       currentEdge.data('weight', hasWeight ? edgeWeight : null);
       currentEdge.data('label', edgeLabel);
+      
+      // Save the description and its position
+      currentEdge.data('description', edgeDescription);
+      currentEdge.data('descriptionPosition', descriptionPosition);
       
       // Create style object with line style and direction
       const styleObj: any = {
@@ -293,11 +344,17 @@ export default function CytoscapeGraph() {
       // Get style name for message
       const styleName = edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1);
       
+      // Prepare message about description
+      let descMsg = '';
+      if (edgeDescription) {
+        descMsg = `, description ${descriptionPosition === 'above' ? 'above' : 'below'}`;
+      }
+      
       // Show appropriate status message
       if (hasWeight) {
-        setStatusMessage(`Edge updated with ${styleName} style, weight: ${edgeWeight}`);
+        setStatusMessage(`Edge updated with ${styleName} style${descMsg}, weight: ${edgeWeight}`);
       } else {
-        setStatusMessage(`Edge updated with ${styleName} style, weightless`);
+        setStatusMessage(`Edge updated with ${styleName} style${descMsg}, weightless`);
       }
     }
   };
@@ -312,6 +369,8 @@ export default function CytoscapeGraph() {
       const edgeId = currentEdge.id();
       const label = currentEdge.data('label');
       const weight = currentEdge.data('weight');
+      const description = currentEdge.data('description');
+      const descPosition = currentEdge.data('descriptionPosition');
       
       // Store the current styling
       const currentLineStyle = currentEdge.style('line-style');
@@ -327,7 +386,9 @@ export default function CytoscapeGraph() {
           source: targetId,
           target: sourceId,
           weight: weight,
-          label: label
+          label: label,
+          description: description,
+          descriptionPosition: descPosition
         }
       });
       
@@ -481,6 +542,40 @@ export default function CytoscapeGraph() {
                       className={`p-3 border ${edgeStyle === 'dotted' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
                     >
                       Dotted
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-base font-medium text-gray-700 mb-2">Edge Description</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-3 border border-gray-300 rounded-md text-base"
+                    value={edgeDescription} 
+                    onChange={(e) => setEdgeDescription(e.target.value)} 
+                    placeholder="Optional edge description"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    This description appears separately from the edge label and weight
+                  </p>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-base font-medium text-gray-700 mb-2">Description Position</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDescriptionPosition('above')}
+                      className={`p-3 border ${descriptionPosition === 'above' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
+                    >
+                      Above Weight
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDescriptionPosition('below')}
+                      className={`p-3 border ${descriptionPosition === 'below' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
+                    >
+                      Below Weight
                     </button>
                   </div>
                 </div>
