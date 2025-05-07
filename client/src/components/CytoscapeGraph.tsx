@@ -201,6 +201,9 @@ export default function CytoscapeGraph() {
                 setStatusMessage('Edge already exists between these nodes');
               } else {
                 // Add a new edge (undirected by default)
+                console.log(`Creating edge from ${sourceNode} to ${node.id()}`);
+                
+                // Use directed arrow style for better clarity in showing the edges
                 cy.add({
                   group: 'edges',
                   data: { 
@@ -213,17 +216,18 @@ export default function CytoscapeGraph() {
                     descriptionPosition: 'above',
                     curveStyle: 'bezier',
                     curvature: 40,
-                    targetArrow: 'none'
+                    targetArrow: 'triangle' // Default to directed edges for clearer visualization
                   }
                 }).style({
-                  'target-arrow-shape': 'none',
+                  'target-arrow-shape': 'triangle',
+                  'target-arrow-color': '#64748B',
                   'line-style': 'solid',
                   'curve-style': 'bezier',
                   'control-point-step-size': 40
                 });
                 
                 setEdgeCount(cy.edges().length);
-                setStatusMessage(`Created edge with weight 1`);
+                setStatusMessage(`Created directed edge with weight 1`);
               }
               
               // Deselect the source node
