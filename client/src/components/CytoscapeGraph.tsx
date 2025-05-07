@@ -13,6 +13,13 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import NodeStyleModal from "./NodeStyleModal";
 
+// Extend Window interface for TypeScript
+declare global {
+  interface Window {
+    cy: any;
+  }
+}
+
 // Define edge display style type for toggle
 type EdgeDisplayStyle = "curved" | "straight";
 
@@ -32,6 +39,10 @@ export default function CytoscapeGraph() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState<any[]>([]);
   const [multiEditModalOpen, setMultiEditModalOpen] = useState(false);
+  
+  // For multi-edit form state
+  const [labelPrefix, setLabelPrefix] = useState<string>("");
+  const [nodeColor, setNodeColor] = useState<string>("");
 
   // State for edge display style toggle
   const [edgeDisplayStyle, setEdgeDisplayStyle] =
@@ -1129,30 +1140,26 @@ export default function CytoscapeGraph() {
           <span className="text-sm font-medium whitespace-nowrap">
             Multi-Select:
           </span>
-          <div className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox" 
-              checked={selectionMode}
-              onChange={(e) => {
-                setSelectionMode(e.target.checked);
-                setStatusMessage(e.target.checked ? 'Multi-select mode enabled' : 'Multi-select mode disabled');
-                
-                // Clear selection when disabling selection mode
-                if (!e.target.checked && cyRef.current) {
-                  selectedNodes.forEach(node => {
-                    node.removeClass('selected-node');
-                  });
-                  setSelectedNodes([]);
-                }
-              }}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 
-                rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white 
-                after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white 
-                after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 
-                after:transition-all peer-checked:bg-purple-600"></div>
-          </div>
+          <Button
+            size="sm"
+            variant={selectionMode ? "default" : "outline"}
+            className={selectionMode ? "bg-purple-600 hover:bg-purple-700" : ""}
+            onClick={() => {
+              const newMode = !selectionMode;
+              setSelectionMode(newMode);
+              setStatusMessage(newMode ? 'Multi-select mode enabled' : 'Multi-select mode disabled');
+              
+              // Clear selection when disabling selection mode
+              if (!newMode && cyRef.current) {
+                selectedNodes.forEach(node => {
+                  node.removeClass('selected-node');
+                });
+                setSelectedNodes([]);
+              }
+            }}
+          >
+            {selectionMode ? "Selection ON" : "Selection OFF"}
+          </Button>
           {selectedNodes.length > 0 && (
             <Button 
               size="sm" 
@@ -1558,10 +1565,7 @@ export default function CytoscapeGraph() {
                   type="text"
                   placeholder="e.g., 'State' - will become State 1, State 2, etc."
                   className="w-full px-3 py-2 border rounded-md"
-                  onChange={(e) => {
-                    // Store prefix for application on submit
-                    window._tempLabelPrefix = e.target.value;
-                  }}
+                  onChange={(e) => setLabelPrefix(e.target.value)}
                 />
               </div>
               
@@ -1571,12 +1575,9 @@ export default function CytoscapeGraph() {
                   {["#4299E1", "#9F7AEA", "#48BB78", "#F56565", "#ED8936", "#ECC94B", "#A0AEC0", "#38B2AC"].map((color) => (
                     <button
                       key={color}
-                      className="w-10 h-10 rounded-full border border-gray-300 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className={`w-10 h-10 rounded-full border border-gray-300 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${nodeColor === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
                       style={{ backgroundColor: color }}
-                      onClick={() => {
-                        // Store color for application on submit
-                        window._tempNodeColor = color;
-                      }}
+                      onClick={() => setNodeColor(color)}
                     />
                   ))}
                 </div>
@@ -1594,24 +1595,21 @@ export default function CytoscapeGraph() {
                 onClick={() => {
                   // Apply batch changes to all selected nodes
                   if (cyRef.current) {
-                    const prefix = window._tempLabelPrefix;
-                    const color = window._tempNodeColor;
-                    
                     selectedNodes.forEach((node, index) => {
                       // Apply label prefix if provided
-                      if (prefix) {
-                        node.data('label', `${prefix} ${index + 1}`);
+                      if (labelPrefix) {
+                        node.data('label', `${labelPrefix} ${index + 1}`);
                       }
                       
                       // Apply color if selected
-                      if (color) {
-                        node.style('background-color', color);
+                      if (nodeColor) {
+                        node.style('background-color', nodeColor);
                       }
                     });
                     
-                    // Clean up temp variables
-                    delete window._tempLabelPrefix;
-                    delete window._tempNodeColor;
+                    // Reset form state
+                    setLabelPrefix("");
+                    setNodeColor("");
                     
                     // Close dialog
                     setMultiEditModalOpen(false);
