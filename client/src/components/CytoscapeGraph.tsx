@@ -1293,7 +1293,7 @@ export default function CytoscapeGraph() {
           >
             {selectionMode ? "Selection ON" : "Selection OFF"}
           </Button>
-          {selectedNodes.length > 0 && (
+          {selectionMode && selectedNodes.length > 0 && (
             <Button 
               size="sm" 
               variant="default"
