@@ -526,6 +526,7 @@ export default function CytoscapeGraph() {
     setEdgeCurvature,
     setNodeStyleOpen,
     setSelectedNodeId,
+    setEdgeColor,
     edgeDisplayStyle,
   ]);
 
@@ -1165,6 +1166,49 @@ export default function CytoscapeGraph() {
                     Reverse Direction
                   </button>
                 )}
+            </div>
+            
+            {/* Edge Color Picker */}
+            <div className="space-y-2">
+              <label className="text-base font-medium">Line Color</label>
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {[
+                  { name: "Gray", value: "#64748B" },
+                  { name: "Blue", value: "#3B82F6" },
+                  { name: "Green", value: "#10B981" },
+                  { name: "Red", value: "#EF4444" },
+                  { name: "Purple", value: "#8B5CF6" },
+                  { name: "Orange", value: "#F97316" },
+                  { name: "Yellow", value: "#FACC15" },
+                  { name: "Teal", value: "#14B8A6" }
+                ].map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    className={`h-8 rounded-md transition-all ${
+                      edgeColor === color.value 
+                        ? 'ring-2 ring-offset-1 ring-blue-500' 
+                        : 'hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: color.value }}
+                    onClick={() => setEdgeColor(color.value)}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="text" 
+                  value={edgeColor} 
+                  onChange={(e) => setEdgeColor(e.target.value)} 
+                  className="flex-1 px-3 py-2 border rounded-md"
+                  placeholder="#RRGGBB"
+                />
+                <div 
+                  className="w-8 h-8 border border-gray-300 rounded" 
+                  style={{ backgroundColor: edgeColor }}
+                />
+              </div>
             </div>
 
             {/* Edge Style */}
