@@ -12,43 +12,6 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import NodeStyleModal from "./NodeStyleModal";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarSeparator,
-  MenubarShortcut,
-  MenubarTrigger,
-  Menubar,
-} from "@/components/ui/menubar";
-import {
-  Plus,
-  Minimize,
-  Maximize,
-  Copy,
-  Trash2,
-  Save,
-  FileText,
-  Settings,
-  PenTool,
-  Layers,
-  Palette,
-  ArrowUpRight,
-  ArrowDownLeft,
-  SeparationVertical,
-  Image,
-  LayoutGrid,
-  MousePointer,
-  BrainCircuit
-} from "lucide-react";
 
 // Extend Window interface for TypeScript
 declare global {
