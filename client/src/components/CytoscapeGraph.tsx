@@ -22,6 +22,7 @@ export default function CytoscapeGraph() {
   const [edgeLabel, setEdgeLabel] = useState('');
   const [isDirected, setIsDirected] = useState(false);
   const [hasWeight, setHasWeight] = useState(true);
+  const [edgeStyle, setEdgeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
 
   useEffect(() => {
     if (cyRef.current) {
