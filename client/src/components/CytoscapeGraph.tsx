@@ -1599,6 +1599,55 @@ export default function CytoscapeGraph() {
               All Straight
             </Button>
           </div>
+          
+          {/* Edge Direction Toggle */}
+          <div className="pt-2 mt-2 border-t border-gray-200 w-full">
+            <span className={`${isMobile ? 'text-base' : 'text-sm'} font-medium block mb-2`}>
+              Edge Direction:
+            </span>
+            <div className={`flex ${isMobile ? 'w-full' : ''} space-x-2`}>
+              <Button
+                size={isMobile ? "default" : "sm"}
+                variant="outline"
+                className={isMobile ? 'flex-1 justify-center' : ''}
+                onClick={() => {
+                  // Set all edges to directed (with arrows)
+                  if (cyRef.current) {
+                    cyRef.current.edges().forEach((edge: any) => {
+                      edge.style({
+                        'target-arrow-shape': 'triangle'
+                      });
+                      edge.data('targetArrow', 'triangle');
+                    });
+                    setStatusMessage("All edges set to directed (with arrows)");
+                  }
+                }}
+              >
+                <ArrowUpRight className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> 
+                All Directed
+              </Button>
+              <Button
+                size={isMobile ? "default" : "sm"}
+                variant="outline"
+                className={isMobile ? 'flex-1 justify-center' : ''}
+                onClick={() => {
+                  // Set all edges to undirected (no arrows)
+                  if (cyRef.current) {
+                    cyRef.current.edges().forEach((edge: any) => {
+                      edge.style({
+                        'target-arrow-shape': 'none'
+                      });
+                      edge.data('targetArrow', 'none');
+                    });
+                    setStatusMessage("All edges set to undirected (no arrows)");
+                  }
+                }}
+              >
+                <SeparatorVertical className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> 
+                All Undirected
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
