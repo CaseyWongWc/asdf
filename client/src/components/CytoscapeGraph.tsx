@@ -239,11 +239,12 @@ export default function CytoscapeGraph() {
           const label = ele.data('label');
           return label && label.length > 0 ? label : '';
         },
-        'source-text-rotation': 'autorotate',
-        'source-text-margin-y': -20,
+        'source-text-rotation': 'none',
+        'source-text-margin-y': -15,
         'source-text-margin-x': 0,
         'font-size': isMobile ? '14px' : '12px',
-        'color': '#1a202c'
+        'font-weight': 'bold',
+        'color': '#3182ce'
       }
     },
     {
