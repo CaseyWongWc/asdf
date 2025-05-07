@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { GraphContext } from '@/contexts/GraphContext';
 import {
   Dialog,
@@ -6,11 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Define node style options
 const NODE_COLORS = [
@@ -41,6 +43,9 @@ interface NodeStyleModalProps {
 
 export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyleModalProps) {
   const { setStatusMessage } = useContext(GraphContext);
+  const isMobile = useIsMobile();
+  
+  // Node style state
   const [nodeColor, setNodeColor] = useState('#4299E1');
   const [nodeShape, setNodeShape] = useState('ellipse');
   const [nodeSize, setNodeSize] = useState([40]); // Default is 40px
@@ -48,20 +53,27 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   const [borderColor, setBorderColor] = useState('#2B6CB0');
   const [textColor, setTextColor] = useState('#FFFFFF');
   
-  // Load node settings when the dialog opens
-  useState(() => {
+  // Load node settings when the dialog opens and a node is selected
+  useEffect(() => {
     if (open && nodeId && window.cy) {
       const node = window.cy.getElementById(nodeId);
       if (node) {
+        // Get current styles
         setNodeColor(node.style('background-color') || '#4299E1');
         setNodeShape(node.style('shape') || 'ellipse');
-        setNodeSize([parseInt(node.style('width') || '40', 10)]);
-        setBorderWidth([parseInt(node.style('border-width') || '2', 10)]);
+        
+        // Parse sizes (remove 'px' suffix)
+        const width = node.style('width') || '40px';
+        setNodeSize([parseInt(width.replace('px', ''), 10)]);
+        
+        const border = node.style('border-width') || '2px';
+        setBorderWidth([parseInt(border.replace('px', ''), 10)]);
+        
         setBorderColor(node.style('border-color') || '#2B6CB0');
         setTextColor(node.style('color') || '#FFFFFF');
       }
     }
-  });
+  }, [open, nodeId]);
 
   const applyStyles = () => {
     if (!nodeId || !window.cy) {
@@ -105,6 +117,8 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       'border-width': '2px',
       'border-color': '#2B6CB0',
       'color': '#FFFFFF',
+      'text-outline-width': '1px',
+      'text-outline-color': '#4299E1'
     });
     
     // Update local state
@@ -123,6 +137,9 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       <DialogContent className="sm:max-w-[500px] p-0 bg-white rounded-lg overflow-hidden max-h-[90vh] overflow-y-auto">
         <DialogHeader className="p-4 md:p-6 border-b">
           <DialogTitle className="text-xl font-semibold">Node Style Options</DialogTitle>
+          <DialogDescription>
+            Customize the appearance of the selected node
+          </DialogDescription>
         </DialogHeader>
         
         <div className="p-4 md:p-6 space-y-6">

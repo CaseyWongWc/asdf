@@ -4,6 +4,7 @@ import CytoscapeComponent from 'react-cytoscapejs';
 import { useIsMobile } from '../hooks/use-mobile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
+import NodeStyleModal from "./NodeStyleModal";
 
 export default function CytoscapeGraph() {
   const cyRef = useRef<any>(null);
@@ -29,6 +30,10 @@ export default function CytoscapeGraph() {
   const [edgeStyle, setEdgeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
   const [edgeCurve, setEdgeCurve] = useState<'straight' | 'bezier'>('bezier'); 
   const [edgeCurvature, setEdgeCurvature] = useState<number>(40); // Control point step size
+  
+  // Node style dialog state
+  const [nodeStyleOpen, setNodeStyleOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   // Setup Cytoscape instance and initial nodes
   useEffect(() => {
@@ -115,6 +120,18 @@ export default function CytoscapeGraph() {
           }
         });
         
+        // Double-click handler for node styling
+        cy.on('dbltap', 'node', function(event: any) {
+          // Open the node style dialog
+          const node = event.target;
+          setSelectedNodeId(node.id());
+          setNodeStyleOpen(true);
+          setStatusMessage(`Editing style for "${node.data('label')}"`);
+          
+          // Prevent the click handler from firing
+          event.stopPropagation();
+        });
+        
         // Node click handler for edge creation
         cy.on('tap', 'node', function(event: any) {
           const node = event.target;
@@ -138,7 +155,7 @@ export default function CytoscapeGraph() {
                 return;
               }
               
-              // Create a self-loop with special styling
+              // Create a self-loop with JFLAP-like styling
               cy.add({
                 group: 'edges',
                 data: { 
@@ -150,16 +167,19 @@ export default function CytoscapeGraph() {
                   description: '',
                   descriptionPosition: 'above',
                   curveStyle: 'bezier',
-                  curvature: 80, // Higher curvature for self-loops
-                  targetArrow: 'none'
+                  curvature: 80,
+                  targetArrow: 'none',
+                  // Special properties for self-loops
+                  loopDirection: '-45deg', // JFLAP-like loop start angle
+                  loopSweep: '315deg',     // JFLAP-like loop arc size
                 }
               }).style({
                 'target-arrow-shape': 'none',
                 'line-style': 'solid',
                 'curve-style': 'bezier',
-                'control-point-step-size': 80, // Higher step size for visibility
-                'loop-direction': '45deg', // Angle for the self-loop
-                'loop-sweep': '90deg' // Arc angle
+                'control-point-step-size': 80,
+                'control-point-distance': 120, // Higher distance for more pronounced curve
+                'control-point-weight': 0.7,   // Weight for curve position
               });
               
               setEdgeCount(cy.edges().length);
@@ -423,14 +443,42 @@ export default function CytoscapeGraph() {
         'background-color': '#FC8181'
       }
     },
-    // Self-loop edge style
+    // Self-loop edge style - This implements JFLAP-like self-loops
     {
-      selector: 'edge[source = target]',
+      selector: 'edge',
       style: {
-        'curve-style': 'bezier',
-        'control-point-step-size': 80,
-        'loop-direction': '45deg',
-        'loop-sweep': '90deg'
+        'curve-style': function(ele: any) {
+          // If the source and target are the same, it's a self-loop
+          return ele.data('source') === ele.data('target') ? 'bezier' : ele.style('curve-style');
+        },
+        'control-point-step-size': function(ele: any) {
+          // Use a larger control point for self-loops to make them more visible
+          return ele.data('source') === ele.data('target') ? 80 : ele.style('control-point-step-size');
+        },
+        'control-point-distance': function(ele: any) {
+          // Only apply to self-loops, gives more pronounced curve like JFLAP
+          return ele.data('source') === ele.data('target') ? 120 : 0;
+        },
+        'control-point-weight': function(ele: any) {
+          // Only apply to self-loops, gives more pronounced curve like JFLAP
+          return ele.data('source') === ele.data('target') ? 0.7 : 0.5;
+        },
+        'loop-direction': function(ele: any) {
+          // Apply JFLAP-inspired loop direction
+          if (ele.data('source') === ele.data('target')) {
+            // Allow custom loop direction as stored in data (or default to -45)
+            return ele.data('loopDirection') || '-45deg';
+          }
+          return '0deg';
+        },
+        'loop-sweep': function(ele: any) {
+          // Apply JFLAP-inspired loop sweep
+          if (ele.data('source') === ele.data('target')) {
+            // Allow custom loop sweep as stored in data (or default to 315)
+            return ele.data('loopSweep') || '315deg';
+          }
+          return '0deg';
+        }
       }
     }
   ];
