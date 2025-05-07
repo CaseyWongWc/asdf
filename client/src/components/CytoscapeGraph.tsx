@@ -379,41 +379,40 @@ export default function CytoscapeGraph() {
 
                   // If this created a bidirectional relationship, update both edges for bracket appearance
                   if (hasBidirectional) {
-                    // Get IDs to determine which was created first vs second
-                    const thisEdgeId = parseInt(newEdge.id().replace(/\D/g, ''));
-                    const oppositeEdgeId = parseInt(oppositeEdge.id().replace(/\D/g, ''));
-
-                    // Create bracket-like appearance - one curves up, one curves down
-                    // First created edge curves upward, second created edge curves downward
+                    const sourceId = newEdge.data('source');
+                    const targetId = newEdge.data('target');
+                    
+                    // Always make the edge going from lower ID to higher ID curve upward
+                    // and the edge going from higher ID to lower ID curve downward
                     const upwardCurve = 60;   // Positive means curve upward
                     const downwardCurve = -60; // Negative means curve downward
 
-                    if (thisEdgeId < oppositeEdgeId) {
-                      // This edge was created first, so it curves downward
+                    if (sourceId < targetId) {
+                      // Edge going from lower to higher ID curves upward
                       newEdge.style({
                         "curve-style": "unbundled-bezier",
-                        "control-point-distances": downwardCurve,
+                        "control-point-distances": upwardCurve,
                         "control-point-weights": 0.5,
                       });
 
-                      // The opposite edge curves upward
+                      // Opposite edge curves downward
                       oppositeEdge.style({
                         "curve-style": "unbundled-bezier",
-                        "control-point-distances": upwardCurve,
+                        "control-point-distances": downwardCurve,
                         "control-point-weights": 0.5,
                       });
                     } else {
-                      // This edge was created second, so it curves upward
+                      // Edge going from higher to lower ID curves downward
                       newEdge.style({
                         "curve-style": "unbundled-bezier",
-                        "control-point-distances": upwardCurve,
+                        "control-point-distances": downwardCurve,
                         "control-point-weights": 0.5,
                       });
 
-                      // The opposite edge curves downward
+                      // Opposite edge curves upward
                       oppositeEdge.style({
                         "curve-style": "unbundled-bezier",
-                        "control-point-distances": downwardCurve,
+                        "control-point-distances": upwardCurve,
                         "control-point-weights": 0.5,
                       });
                     }
