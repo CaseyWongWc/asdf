@@ -22,6 +22,8 @@ export default function NodeEditModal() {
       if (node) {
         setNodeLabel(node.data('label') || "");
         setNodeDescription(node.data('description') || "");
+        setTopText(node.data('topText') || "");
+        setBottomText(node.data('bottomText') || "");
         setNodeColor(node.style('background-color') || "#64748b");
       }
     }
@@ -33,6 +35,8 @@ export default function NodeEditModal() {
       if (node) {
         node.data('label', nodeLabel.trim());
         node.data('description', nodeDescription.trim());
+        node.data('topText', topText.trim());
+        node.data('bottomText', bottomText.trim());
         node.style('background-color', nodeColor);
         setStatusMessage(`Node "${nodeLabel.trim()}" updated`);
       }
@@ -113,6 +117,20 @@ export default function NodeEditModal() {
           </div>
           
           <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-4 items-center gap-4'}`}>
+            <Label htmlFor="node-top-text" className={isMobile ? 'text-left text-base' : 'text-right'}>
+              Top Text
+            </Label>
+            <Input
+              id="node-top-text"
+              value={topText}
+              onChange={(e) => setTopText(e.target.value)}
+              className={isMobile ? '' : 'col-span-3'}
+              size={isMobile ? 30 : undefined}
+              placeholder="Text displayed above node"
+            />
+          </div>
+
+          <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-4 items-center gap-4'}`}>
             <Label htmlFor="node-description" className={isMobile ? 'text-left text-base' : 'text-right'}>
               Description
             </Label>
@@ -122,6 +140,20 @@ export default function NodeEditModal() {
               onChange={(e) => setNodeDescription(e.target.value)}
               className={isMobile ? '' : 'col-span-3'}
               size={isMobile ? 30 : undefined}
+            />
+          </div>
+          
+          <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-4 items-center gap-4'}`}>
+            <Label htmlFor="node-bottom-text" className={isMobile ? 'text-left text-base' : 'text-right'}>
+              Bottom Text
+            </Label>
+            <Input
+              id="node-bottom-text"
+              value={bottomText}
+              onChange={(e) => setBottomText(e.target.value)}
+              className={isMobile ? '' : 'col-span-3'}
+              size={isMobile ? 30 : undefined}
+              placeholder="Text displayed below node"
             />
           </div>
           
