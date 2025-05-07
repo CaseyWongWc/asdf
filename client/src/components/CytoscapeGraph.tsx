@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useContext, useState } from "react";
+import React, { useEffect, useRef, useContext, useState, useCallback } from "react";
 import { GraphContext } from "../contexts/GraphContext";
 import CytoscapeComponent from "react-cytoscapejs";
 import { useIsMobile } from "../hooks/use-mobile";
@@ -43,7 +43,7 @@ import {
   Palette,
   ArrowUpRight,
   ArrowDownLeft,
-  SeparationVertical,
+  SeparatorVertical,
   Image,
   LayoutGrid,
   MousePointer,
@@ -102,6 +102,64 @@ export default function CytoscapeGraph() {
   const [edgeCurve, setEdgeCurve] = useState<"straight" | "bezier">("bezier");
   const [edgeCurvature, setEdgeCurvature] = useState<number>(40); // Control point step size
   const [edgeColor, setEdgeColor] = useState<string>("#64748B"); // Default gray color
+  
+  // Helper function to apply Auto Smart edge styling
+  const applyAutoSmartEdgeStyling = useCallback(() => {
+    if (!cyRef.current) return;
+    
+    const cy = cyRef.current;
+    
+    // Set display style to curved for tracking state
+    setEdgeDisplayStyle("curved");
+    setStatusMessage(
+      "Auto Edge Style: Single edges are straight, bidirectional are curved",
+    );
+
+    // First pass: identify bidirectional edges
+    const nodes = new Map();
+    cy.edges().forEach((edge: any) => {
+      const source = edge.data("source");
+      const target = edge.data("target");
+
+      // Skip self-loops
+      if (source === target) return;
+
+      const key =
+        source < target
+          ? `${source}-${target}`
+          : `${target}-${source}`;
+      if (!nodes.has(key)) {
+        nodes.set(key, { edges: [], count: 0 });
+      }
+
+      const info = nodes.get(key);
+      info.edges.push(edge);
+      info.count++;
+    });
+
+    // Second pass: apply appropriate styles
+    nodes.forEach(({ edges, count }) => {
+      const isBidirectional = count > 1;
+
+      edges.forEach((edge: any, index: number) => {
+        if (isBidirectional) {
+          // Bidirectional edges are curved - use same direction curve for both
+          // This makes both edges curve in the same direction instead of opposite
+          const controlDistance = -80; // Both edges curve above the straight line
+          edge.style({
+            "curve-style": "unbundled-bezier",
+            "control-point-distances": controlDistance,
+            "control-point-weights": 0.5,
+          });
+        } else {
+          // Single edges are straight
+          edge.style({
+            "curve-style": "straight",
+          });
+        }
+      });
+    });
+  }, [setEdgeDisplayStyle, setStatusMessage]);
 
   // Node style dialog state
   const [nodeStyleOpen, setNodeStyleOpen] = useState(false);
@@ -374,6 +432,9 @@ export default function CytoscapeGraph() {
               );
               setEdgeCount(cy.edges().length);
               setStatusMessage(`Created self-loop with weight 1`);
+              
+              // Apply Auto Smart styling automatically
+              applyAutoSmartEdgeStyling();
             } else {
               // Creating an edge between two different nodes
               console.log(`Creating edge from ${sourceNode} to ${nodeId}`);
@@ -501,6 +562,9 @@ export default function CytoscapeGraph() {
                   );
                   setEdgeCount(cy.edges().length);
                   setStatusMessage(`Created directed edge with weight 1`);
+                  
+                  // Apply Auto Smart styling automatically after edge creation
+                  applyAutoSmartEdgeStyling();
                 } catch (error) {
                   console.error("Error creating edge:", error);
                   setStatusMessage("Error creating edge");
