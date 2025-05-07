@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { GraphContext } from '@/contexts/GraphContext';
+import { useStyles, StyleScope } from '@/contexts/StyleContext';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Globe, Layers, Target } from 'lucide-react';
 
 // Define node style options
 const NODE_COLORS = [
@@ -43,6 +46,16 @@ interface NodeStyleModalProps {
 
 export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyleModalProps) {
   const { setStatusMessage, setNodeCount, setEdgeCount } = useContext(GraphContext);
+  const { 
+    styleScope,
+    setStyleScope,
+    defaultNodeStyles,
+    setDefaultNodeStyle,
+    getNodeStyle,
+    setNodeStyle,
+    resetNodeStyles,
+    resetDefaultNodeStyles
+  } = useStyles();
   const isMobile = useIsMobile();
   
   // Node style state
@@ -58,105 +71,304 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   const [topText, setTopText] = useState('');
   const [bottomText, setBottomText] = useState('');
   
-  // Load node settings when the dialog opens and a node is selected
+  // Count of elements that will be affected
+  const [nodeCount, setNodeStyleCount] = useState(0);
+  
+  // Load node settings and update counts when the dialog opens
   useEffect(() => {
-    if (open && nodeId && window.cy) {
-      const node = window.cy.getElementById(nodeId);
-      if (node) {
-        // Get current styles
-        setNodeColor(node.style('background-color') || '#4299E1');
-        setNodeShape(node.style('shape') || 'ellipse');
+    if (open && window.cy) {
+      // Update node count based on scope
+      if (styleScope === 'selected') {
+        // Count selected nodes
+        const selectedNodes = window.cy.nodes('.selected-node');
+        setNodeStyleCount(selectedNodes.length);
         
-        // Parse sizes (remove 'px' suffix)
-        const width = node.style('width') || '40px';
-        setNodeSize([parseInt(width.replace('px', ''), 10)]);
+        // If we have a specific node selected, load its styles
+        if (nodeId) {
+          const node = window.cy.getElementById(nodeId);
+          if (node) {
+            // Get current styles
+            setNodeColor(node.style('background-color') || '#4299E1');
+            setNodeShape(node.style('shape') || 'ellipse');
+            
+            // Parse sizes (remove 'px' suffix)
+            const width = node.style('width') || '40px';
+            setNodeSize([parseInt(width.replace('px', ''), 10)]);
+            
+            const border = node.style('border-width') || '2px';
+            setBorderWidth([parseInt(border.replace('px', ''), 10)]);
+            
+            setBorderColor(node.style('border-color') || '#2B6CB0');
+            setTextColor(node.style('color') || '#FFFFFF');
+            
+            // Get text fields
+            setNodeLabel(node.data('label') || '');
+            setTopText(node.data('topText') || '');
+            setBottomText(node.data('bottomText') || '');
+          }
+        }
+      } else if (styleScope === 'all') {
+        // Count all nodes
+        setNodeStyleCount(window.cy.nodes().length);
         
-        const border = node.style('border-width') || '2px';
-        setBorderWidth([parseInt(border.replace('px', ''), 10)]);
+        // Load default node styles if no specific node is selected
+        if (defaultNodeStyles) {
+          setNodeColor(defaultNodeStyles.backgroundColor || '#4299E1');
+          setNodeShape(defaultNodeStyles.shape || 'ellipse');
+          setNodeSize([defaultNodeStyles.width || 40]);
+          setBorderWidth([defaultNodeStyles.borderWidth || 2]);
+          setBorderColor(defaultNodeStyles.borderColor || '#2B6CB0');
+          setTextColor(defaultNodeStyles.color || '#FFFFFF');
+        }
+      } else if (styleScope === 'global') {
+        // Global defaults affect future nodes
+        setNodeStyleCount(0);
         
-        setBorderColor(node.style('border-color') || '#2B6CB0');
-        setTextColor(node.style('color') || '#FFFFFF');
-        
-        // Get text fields
-        setNodeLabel(node.data('label') || '');
-        setTopText(node.data('topText') || '');
-        setBottomText(node.data('bottomText') || '');
+        // Load default node styles
+        if (defaultNodeStyles) {
+          setNodeColor(defaultNodeStyles.backgroundColor || '#4299E1');
+          setNodeShape(defaultNodeStyles.shape || 'ellipse');
+          setNodeSize([defaultNodeStyles.width || 40]);
+          setBorderWidth([defaultNodeStyles.borderWidth || 2]);
+          setBorderColor(defaultNodeStyles.borderColor || '#2B6CB0');
+          setTextColor(defaultNodeStyles.color || '#FFFFFF');
+        }
       }
     }
-  }, [open, nodeId]);
+  }, [open, nodeId, styleScope, defaultNodeStyles]);
 
   const applyStyles = () => {
-    if (!nodeId || !window.cy) {
-      setStatusMessage('No node selected for styling');
+    if (!window.cy) {
+      setStatusMessage('Graph not initialized');
       return;
     }
 
-    const node = window.cy.getElementById(nodeId);
-    if (!node) {
-      setStatusMessage('Selected node not found');
-      return;
-    }
+    // Collect styles into a style object
+    const styleObj = {
+      backgroundColor: nodeColor,
+      shape: nodeShape,
+      width: nodeSize[0],
+      height: nodeSize[0],
+      borderWidth: borderWidth[0],
+      borderColor: borderColor,
+      color: textColor,
+    };
 
-    // Apply all styling changes at once
-    node.style({
-      'background-color': nodeColor,
-      'shape': nodeShape,
-      'width': `${nodeSize[0]}px`,
-      'height': `${nodeSize[0]}px`, // Keep it square for now
-      'border-width': `${borderWidth[0]}px`,
-      'border-color': borderColor,
-      'color': textColor,
-    });
-    
-    // Update node data with label, top text and bottom text
-    if (nodeLabel.trim()) {
-      node.data('label', nodeLabel.trim());
+    // Text fields object
+    const textFields = {
+      label: nodeLabel.trim(),
+      topText: topText.trim(),
+      bottomText: bottomText.trim(),
+    };
+
+    // Apply based on selected scope
+    if (styleScope === 'selected') {
+      // Apply to selected nodes
+      if (nodeId) {
+        // Single node case
+        const node = window.cy.getElementById(nodeId);
+        if (node) {
+          // Apply styles
+          node.style({
+            'background-color': nodeColor,
+            'shape': nodeShape,
+            'width': `${nodeSize[0]}px`,
+            'height': `${nodeSize[0]}px`,
+            'border-width': `${borderWidth[0]}px`,
+            'border-color': borderColor,
+            'color': textColor,
+          });
+          
+          // Update text fields
+          if (textFields.label) node.data('label', textFields.label);
+          node.data('topText', textFields.topText);
+          node.data('bottomText', textFields.bottomText);
+          
+          // Save to style context
+          setNodeStyle([nodeId], 'backgroundColor', nodeColor);
+          setNodeStyle([nodeId], 'shape', nodeShape);
+          setNodeStyle([nodeId], 'width', nodeSize[0]);
+          setNodeStyle([nodeId], 'borderWidth', borderWidth[0]);
+          setNodeStyle([nodeId], 'borderColor', borderColor);
+          setNodeStyle([nodeId], 'color', textColor);
+          
+          setStatusMessage(`Node styling updated`);
+        }
+      } else {
+        // Multiple selected nodes
+        const selectedNodes = window.cy.nodes('.selected-node');
+        if (selectedNodes.length === 0) {
+          setStatusMessage('No nodes selected');
+          return;
+        }
+        
+        // Collect node IDs for batch update
+        const selectedIds: string[] = [];
+        
+        // Apply to all selected nodes
+        selectedNodes.forEach((node: any) => {
+          // Apply styles
+          node.style({
+            'background-color': nodeColor,
+            'shape': nodeShape,
+            'width': `${nodeSize[0]}px`,
+            'height': `${nodeSize[0]}px`,
+            'border-width': `${borderWidth[0]}px`,
+            'border-color': borderColor,
+            'color': textColor,
+          });
+          
+          // Only update text fields if they're set and this is a single-node operation
+          if (selectedNodes.length === 1) {
+            if (textFields.label) node.data('label', textFields.label);
+            node.data('topText', textFields.topText);
+            node.data('bottomText', textFields.bottomText);
+          }
+          
+          selectedIds.push(node.id());
+        });
+        
+        // Batch update all styles
+        setNodeStyle(selectedIds, 'backgroundColor', nodeColor);
+        setNodeStyle(selectedIds, 'shape', nodeShape);
+        setNodeStyle(selectedIds, 'width', nodeSize[0]);
+        setNodeStyle(selectedIds, 'borderWidth', borderWidth[0]);
+        setNodeStyle(selectedIds, 'borderColor', borderColor);
+        setNodeStyle(selectedIds, 'color', textColor);
+        
+        setStatusMessage(`Updated styling for ${selectedNodes.length} nodes`);
+      }
+    } else if (styleScope === 'all') {
+      // Apply to all nodes
+      const allNodes = window.cy.nodes();
+      
+      // Apply to all nodes
+      allNodes.forEach(node => {
+        node.style({
+          'background-color': nodeColor,
+          'shape': nodeShape,
+          'width': `${nodeSize[0]}px`,
+          'height': `${nodeSize[0]}px`,
+          'border-width': `${borderWidth[0]}px`,
+          'border-color': borderColor,
+          'color': textColor,
+        });
+        
+        // Don't modify text in batch operations
+      });
+      
+      // Save as default style for all nodes
+      setDefaultNodeStyle({...styleObj});
+      
+      setStatusMessage(`Updated styling for all ${allNodes.length} nodes`);
+    } else if (styleScope === 'global') {
+      // Save as global default for future nodes
+      setDefaultNodeStyle({...styleObj});
+      setStatusMessage('Updated default styling for new nodes');
     }
     
-    // Just store the text values directly in node data
-    // The styling will take care of rendering them
-    node.data('topText', topText.trim());
-    node.data('bottomText', bottomText.trim());
-
-    setStatusMessage(`Node styling updated`);
     onOpenChange(false);
   };
 
   const resetStyles = () => {
-    if (!nodeId || !window.cy) return;
+    if (!window.cy) return;
     
-    const targetNode = window.cy.getElementById(nodeId);
-    if (!targetNode) return;
+    // Default styles
+    const defaultStyles = {
+      backgroundColor: '#4299E1',
+      shape: 'ellipse',
+      width: 40,
+      height: 40,
+      borderWidth: 2,
+      borderColor: '#2B6CB0',
+      color: '#FFFFFF',
+    };
     
-    // Reset to default styles
-    targetNode.style({
-      'background-color': '#4299E1',
-      'shape': 'ellipse',
-      'width': '40px',
-      'height': '40px',
-      'border-width': '2px',
-      'border-color': '#2B6CB0',
-      'color': '#FFFFFF',
-      'text-outline-width': '1px',
-      'text-outline-color': '#4299E1'
-    });
-    
-    // Reset node text data - this will remove top and bottom text
-    targetNode.data('topText', '');
-    targetNode.data('bottomText', '');
-    targetNode.data('hasBottomText', false); // Clear flag
+    if (styleScope === 'selected') {
+      if (nodeId) {
+        // Reset just this node
+        const targetNode = window.cy.getElementById(nodeId);
+        if (!targetNode) return;
+        
+        // Reset to default styles
+        targetNode.style({
+          'background-color': defaultStyles.backgroundColor,
+          'shape': defaultStyles.shape,
+          'width': `${defaultStyles.width}px`,
+          'height': `${defaultStyles.height}px`,
+          'border-width': `${defaultStyles.borderWidth}px`,
+          'border-color': defaultStyles.borderColor,
+          'color': defaultStyles.color,
+          'text-outline-width': '1px',
+          'text-outline-color': defaultStyles.backgroundColor
+        });
+        
+        // Reset text data for individual node
+        targetNode.data('topText', '');
+        targetNode.data('bottomText', '');
+        
+        // Reset in style context
+        resetNodeStyles(nodeId);
+        
+        setStatusMessage('Node style reset to default');
+      } else {
+        // Reset all selected nodes
+        const selectedNodes = window.cy.nodes('.selected-node');
+        selectedNodes.forEach(node => {
+          node.style({
+            'background-color': defaultStyles.backgroundColor,
+            'shape': defaultStyles.shape,
+            'width': `${defaultStyles.width}px`,
+            'height': `${defaultStyles.height}px`,
+            'border-width': `${defaultStyles.borderWidth}px`,
+            'border-color': defaultStyles.borderColor,
+            'color': defaultStyles.color,
+            'text-outline-width': '1px',
+            'text-outline-color': defaultStyles.backgroundColor
+          });
+          
+          // Reset in style context
+          resetNodeStyles(node.id());
+        });
+        
+        setStatusMessage(`Reset styling for ${selectedNodes.length} nodes`);
+      }
+    } else if (styleScope === 'all' || styleScope === 'global') {
+      // Reset defaults
+      resetDefaultNodeStyles();
+      
+      if (styleScope === 'all') {
+        // Reset all nodes to default
+        const allNodes = window.cy.nodes();
+        allNodes.forEach(node => {
+          node.style({
+            'background-color': defaultStyles.backgroundColor,
+            'shape': defaultStyles.shape,
+            'width': `${defaultStyles.width}px`,
+            'height': `${defaultStyles.height}px`,
+            'border-width': `${defaultStyles.borderWidth}px`,
+            'border-color': defaultStyles.borderColor,
+            'color': defaultStyles.color,
+            'text-outline-width': '1px',
+            'text-outline-color': defaultStyles.backgroundColor
+          });
+        });
+        
+        setStatusMessage('All nodes reset to default style');
+      } else {
+        setStatusMessage('Global default node styles reset');
+      }
+    }
     
     // Update local state
-    setNodeColor('#4299E1');
-    setNodeShape('ellipse');
-    setNodeSize([40]);
-    setBorderWidth([2]);
-    setBorderColor('#2B6CB0');
-    setTextColor('#FFFFFF');
+    setNodeColor(defaultStyles.backgroundColor);
+    setNodeShape(defaultStyles.shape);
+    setNodeSize([defaultStyles.width]);
+    setBorderWidth([defaultStyles.borderWidth]);
+    setBorderColor(defaultStyles.borderColor);
+    setTextColor(defaultStyles.color);
     setTopText('');
     setBottomText('');
-    
-    setStatusMessage('Node style reset to default');
   };
   
   const deleteNode = () => {
@@ -186,11 +398,72 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
         <DialogHeader className="p-4 md:p-6 border-b">
           <DialogTitle className="text-xl font-semibold">Node Style Options</DialogTitle>
           <DialogDescription>
-            Customize the appearance of the selected node
+            Customize the appearance of {nodeId ? 'the selected node' : 'nodes'}
           </DialogDescription>
         </DialogHeader>
         
         <div className="p-4 md:p-6 space-y-6">
+          {/* Scope selector */}
+          <div className="mb-6">
+            <Label className="text-base font-medium mb-2 block">Apply To:</Label>
+            <RadioGroup 
+              value={styleScope} 
+              onValueChange={(val) => setStyleScope(val as StyleScope)}
+              className="flex flex-col space-y-1"
+            >
+              <div className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50">
+                <RadioGroupItem value="selected" id="scope-selected" />
+                <Label htmlFor="scope-selected" className="flex items-center">
+                  <Target className="h-4 w-4 mr-2 text-blue-500" />
+                  <span>Selected Only</span>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50">
+                <RadioGroupItem value="all" id="scope-all" />
+                <Label htmlFor="scope-all" className="flex items-center">
+                  <Layers className="h-4 w-4 mr-2 text-purple-500" />
+                  <span>All nodes</span>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50">
+                <RadioGroupItem value="global" id="scope-global" />
+                <Label htmlFor="scope-global" className="flex items-center">
+                  <Globe className="h-4 w-4 mr-2 text-green-500" />
+                  <span>Global Default</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          {/* Current scope indicator */}
+          <div className="p-2 bg-blue-50 rounded text-sm">
+            {styleScope === 'selected' && (
+              <div className="flex items-center">
+                <Target className="w-4 h-4 mr-2 text-blue-500" />
+                <span>
+                  Editing {nodeCount} selected {nodeCount === 1 ? 'node' : 'nodes'}
+                </span>
+              </div>
+            )}
+            
+            {styleScope === 'all' && (
+              <div className="flex items-center">
+                <Layers className="w-4 h-4 mr-2 text-purple-500" />
+                <span>
+                  Editing all nodes ({nodeCount})
+                </span>
+              </div>
+            )}
+            
+            {styleScope === 'global' && (
+              <div className="flex items-center">
+                <Globe className="w-4 h-4 mr-2 text-green-500" />
+                <span>
+                  Setting default styles for new nodes
+                </span>
+              </div>
+            )}
+          </div>
           {/* Node color selector */}
           <div className="space-y-2">
             <Label className="text-base font-medium">Node Color</Label>
@@ -367,61 +640,69 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
             </div>
           </div>
           
-          {/* Node text customization section */}
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-base font-medium mb-4">Node Text Customization</h3>
-            
-            {/* Node Label (main text) */}
-            <div className="space-y-2 mb-4">
-              <Label htmlFor="node-label" className="text-sm font-medium">
-                <span className="font-bold">Main Label</span> (center)
-              </Label>
-              <Input
-                id="node-label"
-                value={nodeLabel}
-                onChange={(e) => setNodeLabel(e.target.value)}
-                placeholder="Main node label/name"
-                className="w-full font-medium"
-              />
+          {/* Node text customization section - only for selected scope with 1 node */}
+          {styleScope === 'selected' && (nodeId || (window.cy && window.cy.nodes('.selected-node').length === 1)) && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-base font-medium mb-4">Node Text Customization</h3>
+              
+              {/* Node Label (main text) */}
+              <div className="space-y-2 mb-4">
+                <Label htmlFor="node-label" className="text-sm font-medium">
+                  <span className="font-bold">Main Label</span> (center)
+                </Label>
+                <Input
+                  id="node-label"
+                  value={nodeLabel}
+                  onChange={(e) => setNodeLabel(e.target.value)}
+                  placeholder="Main node label/name"
+                  className="w-full font-medium"
+                />
+              </div>
+              
+              {/* Top Text */}
+              <div className="space-y-2 mb-4">
+                <Label htmlFor="top-text" className="text-sm font-medium">
+                  Top Text
+                </Label>
+                <Input
+                  id="top-text"
+                  value={topText}
+                  onChange={(e) => setTopText(e.target.value)}
+                  placeholder="Text displayed above node"
+                  className="w-full"
+                />
+              </div>
+              
+              {/* Bottom Text */}
+              <div className="space-y-2">
+                <Label htmlFor="bottom-text" className="text-sm font-medium">
+                  Bottom Text
+                </Label>
+                <Input
+                  id="bottom-text"
+                  value={bottomText}
+                  onChange={(e) => setBottomText(e.target.value)}
+                  placeholder="Text displayed below node"
+                  className="w-full"
+                />
+              </div>
             </div>
-            
-            {/* Top Text */}
-            <div className="space-y-2 mb-4">
-              <Label htmlFor="top-text" className="text-sm font-medium">
-                Top Text
-              </Label>
-              <Input
-                id="top-text"
-                value={topText}
-                onChange={(e) => setTopText(e.target.value)}
-                placeholder="Text displayed above node"
-                className="w-full"
-              />
-            </div>
-            
-            {/* Bottom Text */}
-            <div className="space-y-2">
-              <Label htmlFor="bottom-text" className="text-sm font-medium">
-                Bottom Text
-              </Label>
-              <Input
-                id="bottom-text"
-                value={bottomText}
-                onChange={(e) => setBottomText(e.target.value)}
-                placeholder="Text displayed below node"
-                className="w-full"
-              />
-            </div>
-          </div>
+          )}
         </div>
         
         <DialogFooter className="p-4 md:p-6 border-t bg-gray-50 flex justify-between">
-          <Button 
-            variant="destructive" 
-            onClick={deleteNode}
-          >
-            Delete Node
-          </Button>
+          {/* Only show delete button for individual node editing */}
+          {styleScope === 'selected' && nodeId && (
+            <Button 
+              variant="destructive" 
+              onClick={deleteNode}
+            >
+              Delete Node
+            </Button>
+          )}
+          
+          {/* For other scopes, show a spacer */}
+          {(styleScope !== 'selected' || !nodeId) && <div></div>}
           
           <div>
             <Button 
@@ -429,10 +710,14 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
               onClick={resetStyles}
               className="mr-2"
             >
-              Reset to Default
+              {styleScope === 'selected' ? 'Reset Selected' : 
+               styleScope === 'all' ? 'Reset All Nodes' : 
+               'Reset to Defaults'}
             </Button>
             <Button onClick={applyStyles}>
-              Apply Styles
+              {styleScope === 'selected' ? 'Apply to Selected' : 
+               styleScope === 'all' ? 'Apply to All' : 
+               'Set as Default'}
             </Button>
           </div>
         </DialogFooter>
