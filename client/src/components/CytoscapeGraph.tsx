@@ -222,7 +222,7 @@ export default function CytoscapeGraph() {
         cy.removeAllListeners(); // Remove all registered event listeners
       };
     }
-  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setEdgeDescription, setDescriptionPosition, setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle]);
+  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setEdgeDescription, setDescriptionPosition, setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle, setEdgeCurve, setEdgeCurvature]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -410,13 +410,17 @@ export default function CytoscapeGraph() {
           weight: weight,
           label: label,
           description: description,
-          descriptionPosition: descPosition
+          descriptionPosition: descPosition,
+          curveStyle: curveStyle,
+          curvature: curvature
         }
       });
       
       // Apply the same styling
       const styleObj: any = {
         'line-style': currentLineStyle || edgeStyle,
+        'curve-style': curveStyle,
+        'control-point-step-size': curvature
       };
       
       if (isDirected) {
@@ -599,6 +603,45 @@ export default function CytoscapeGraph() {
                     >
                       Below Weight
                     </button>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-base font-medium text-gray-700 mb-2">Edge Shape</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEdgeCurve('straight')}
+                      className={`p-3 border ${edgeCurve === 'straight' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
+                    >
+                      Straight
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEdgeCurve('bezier')}
+                      className={`p-3 border ${edgeCurve === 'bezier' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} rounded-md text-center transition-colors`}
+                    >
+                      Curved
+                    </button>
+                  </div>
+                </div>
+                
+                <div className={`mb-4 ${edgeCurve === 'straight' ? 'opacity-50' : ''}`}>
+                  <label className="block text-base font-medium text-gray-700 mb-2">
+                    Curve Amount: {edgeCurvature}
+                  </label>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={edgeCurvature} 
+                    onChange={(e) => setEdgeCurvature(Number(e.target.value))}
+                    className="w-full" 
+                    disabled={edgeCurve === 'straight'}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Flat</span>
+                    <span>High Curve</span>
                   </div>
                 </div>
 
