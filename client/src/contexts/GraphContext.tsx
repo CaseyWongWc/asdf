@@ -7,6 +7,8 @@ declare global {
   }
 }
 
+export type GraphMode = 'editor' | 'algorithm';
+
 export interface GraphContextProps {
   title: string;
   setTitle: (title: string) => void;
@@ -31,6 +33,9 @@ export interface GraphContextProps {
   resetGraph: () => void;
   createNode: (x: number, y: number, label?: string, cy?: any) => string;
   createEdge: (sourceId: string, targetId: string, weight?: number, cy?: any) => string | null;
+  mode: GraphMode;
+  setMode: (mode: GraphMode) => void;
+  checkForModeSwitch: (title: string) => void;
 }
 
 export const GraphContext = createContext<GraphContextProps>({
@@ -57,6 +62,9 @@ export const GraphContext = createContext<GraphContextProps>({
   resetGraph: () => {},
   createNode: () => "",
   createEdge: () => null,
+  mode: 'editor',
+  setMode: () => {},
+  checkForModeSwitch: () => {},
 });
 
 interface GraphProviderProps {
@@ -74,6 +82,7 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
   const [nodeIdCounter, setNodeIdCounter] = useState<number>(0);
   const [edgeIdCounter, setEdgeIdCounter] = useState<number>(0);
   const [showHelp, setShowHelp] = useState<boolean>(false);
+  const [mode, setMode] = useState<GraphMode>('editor');
 
   const createNode = (x: number, y: number, label?: string, cy?: any) => {
     try {
@@ -169,6 +178,22 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
       setStatusMessage('Graph reset');
     }
   };
+  
+  // Function to check for the special title that triggers mode switch
+  const checkForModeSwitch = (newTitle: string) => {
+    if (newTitle.toUpperCase() === "THIS IS NOT A DRILL") {
+      setMode('algorithm');
+      setStatusMessage('✓ Switched to Algorithm Visualization Mode');
+    } else if (mode === 'algorithm' && newTitle.toUpperCase() !== "THIS IS NOT A DRILL") {
+      setMode('editor');
+      setStatusMessage('✓ Switched to Graph Editor Mode');
+    }
+  };
+
+  // Use the effect hook to check for title changes
+  useEffect(() => {
+    checkForModeSwitch(title);
+  }, [title]);
 
   return (
     <GraphContext.Provider
@@ -196,6 +221,9 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
         resetGraph,
         createNode,
         createEdge,
+        mode,
+        setMode,
+        checkForModeSwitch,
       }}
     >
       {children}
