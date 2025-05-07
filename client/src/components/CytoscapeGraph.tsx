@@ -950,25 +950,26 @@ export default function CytoscapeGraph() {
           return parallelEdges.length === 1 ? "straight" : "unbundled-bezier";
         },
         "control-point-distances": function (ele: any) {
+          // Check curve style first
+          const curveStyle = ele.style('curve-style');
+          
+          // If it's not a bezier curve or is straight, return 0 (neutral)
+          if (curveStyle === 'straight') {
+            return 0;
+          }
+          
+          // Handle self-loops
           if (ele.data("source") === ele.data("target")) {
             return 120; // Self-loops get special treatment
           }
 
-          const cy = ele.cy();
-          const source = ele.data("source");
-          const target = ele.data("target");
-
-          // Get all edges between these nodes
-          const edgesBetween = cy
-            .edges()
-            .filter(
-              (e: any) =>
-                (e.data("source") === source && e.data("target") === target) ||
-                (e.data("source") === target && e.data("target") === source),
-            );
-
-          // For bidirectional edges, both curve the same way (above)
-          return -80; // All curves go above the straight line
+          // For unbundled-bezier curves (bidirectional edges)
+          if (curveStyle === 'unbundled-bezier') {
+            return -80; // All curves go above the straight line
+          }
+          
+          // Default fallback - never return null
+          return 0;
         },
         "control-point-weights": 0.5,
       },
@@ -1090,19 +1091,37 @@ export default function CytoscapeGraph() {
           return "outside-to-node";
         },
         "control-point-step-size": function (ele: any) {
-          return ele.data("source") === ele.data("target")
-            ? 80
-            : ele.style("control-point-step-size");
+          if (ele.data("source") === ele.data("target")) {
+            return 80; // Self-loops need a specific value
+          }
+          
+          // Get the current style value
+          const currentValue = ele.style("control-point-step-size");
+          
+          // Return a default value of 40 if null or undefined
+          return (currentValue !== null && currentValue !== undefined) ? currentValue : 40;
         },
         "control-point-distances": function (ele: any) {
-          return ele.data("source") === ele.data("target")
-            ? 120
-            : ele.style("control-point-distances");
+          if (ele.data("source") === ele.data("target")) {
+            return 120; // Self-loops need a specific value
+          }
+          
+          // Get the current style value
+          const currentValue = ele.style("control-point-distances");
+          
+          // Return a default value of 0 if null or undefined
+          return (currentValue !== null && currentValue !== undefined) ? currentValue : 0;
         },
         "control-point-weights": function (ele: any) {
-          return ele.data("source") === ele.data("target")
-            ? 0.7
-            : ele.style("control-point-weights");
+          if (ele.data("source") === ele.data("target")) {
+            return 0.7; // Self-loops need a specific value
+          }
+          
+          // Get the current style value
+          const currentValue = ele.style("control-point-weights");
+          
+          // Return a default value of 0.5 if null or undefined
+          return (currentValue !== null && currentValue !== undefined) ? currentValue : 0.5;
         },
         "loop-direction": function (ele: any) {
           return ele.data("source") === ele.data("target") ? "-45deg" : "0deg";
