@@ -160,9 +160,9 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   };
   
   const deleteNode = () => {
-    if (!selectedNodeId || !window.cy) return;
+    if (!nodeId || !window.cy) return;
     
-    const targetNode = window.cy.getElementById(selectedNodeId);
+    const targetNode = window.cy.getElementById(nodeId);
     if (!targetNode) return;
     
     const nodeLabel = targetNode.data('label');

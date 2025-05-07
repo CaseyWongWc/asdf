@@ -654,43 +654,27 @@ export default function CytoscapeGraph() {
       },
     },
 
-    // Top text with ::before pseudo element
+    // Top text with ::before pseudo element - simplified approach
     {
       selector: "node[topText]",
       style: {
-        // Special top text styling using source-label
+        // Special top text styling using source-label with minimal styling to avoid conflicts
         "source-label": "data(topText)",
         "source-text-offset": 0,
         "source-text-margin-y": -25,
-        "text-background-opacity": 0.7,
-        "text-background-color": "#4A5568",
-        "text-background-shape": "roundrectangle",
-        "text-background-padding": 2,
         "source-text-rotation": "autorotate",
-        "font-size": isMobile ? "12px" : "10px",
-        color: "#E2E8F0",
-        "text-wrap": "wrap",
-        "text-max-width": 120,
       },
     },
 
-    // Bottom text with ::after pseudo element
+    // Bottom text with ::after pseudo element - simplified approach
     {
       selector: "node[bottomText]",
       style: {
-        // Special bottom text styling using target-label
+        // Special bottom text styling using target-label with minimal styling to avoid conflicts
         "target-label": "data(bottomText)",
         "target-text-offset": 0,
         "target-text-margin-y": 25,
-        "text-background-opacity": 0.7,
-        "text-background-color": "#4A5568",
-        "text-background-shape": "roundrectangle",
-        "text-background-padding": 2,
         "target-text-rotation": "autorotate",
-        "font-size": isMobile ? "12px" : "10px",
-        color: "#E2E8F0",
-        "text-wrap": "wrap",
-        "text-max-width": 120,
       },
     },
     // Basic edge style
