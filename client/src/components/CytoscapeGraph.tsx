@@ -48,6 +48,7 @@ export default function CytoscapeGraph() {
   );
   const [edgeCurve, setEdgeCurve] = useState<"straight" | "bezier">("bezier");
   const [edgeCurvature, setEdgeCurvature] = useState<number>(40); // Control point step size
+  const [edgeColor, setEdgeColor] = useState<string>("#64748B"); // Default gray color
 
   // Node style dialog state
   const [nodeStyleOpen, setNodeStyleOpen] = useState(false);
@@ -397,6 +398,10 @@ export default function CytoscapeGraph() {
             // Determine the edge style
             const lineStyle = edge.style("line-style") || "solid";
             setEdgeStyle(lineStyle as "solid" | "dashed" | "dotted");
+            
+            // Get edge color
+            const color = edge.style("line-color") || "#64748B";
+            setEdgeColor(color);
 
             // Get curve style and curvature
             const curveStyle = edge.style("curve-style") || "bezier";
@@ -446,6 +451,10 @@ export default function CytoscapeGraph() {
             // Determine the edge style
             const lineStyle = ele.style("line-style") || "solid";
             setEdgeStyle(lineStyle as "solid" | "dashed" | "dotted");
+            
+            // Get edge color
+            const color = ele.style("line-color") || "#64748B";
+            setEdgeColor(color);
 
             // Get curve style and curvature
             const curveStyle = ele.style("curve-style") || "bezier";
@@ -823,17 +832,18 @@ export default function CytoscapeGraph() {
       currentEdge.data("description", edgeDescription);
       currentEdge.data("descriptionPosition", descriptionPosition);
 
-      // Create style object with line style, curve, and direction
+      // Create style object with line style, curve, direction and color
       const styleObj: any = {
         "line-style": edgeStyle,
         "curve-style": edgeCurve,
         "control-point-step-size": edgeCurvature,
+        "line-color": edgeColor,
+        "target-arrow-color": edgeColor, // Match arrow color to line color
       };
 
       // Add arrow if the edge is directed
       if (isDirected) {
         styleObj["target-arrow-shape"] = "triangle";
-        styleObj["target-arrow-color"] = "#64748B";
         currentEdge.data("targetArrow", "triangle");
       } else {
         styleObj["target-arrow-shape"] = "none";
@@ -889,7 +899,8 @@ export default function CytoscapeGraph() {
           "curve-style": edgeCurve,
           "control-point-step-size": edgeCurvature,
           "target-arrow-shape": isDirected ? "triangle" : "none",
-          "target-arrow-color": "#64748B",
+          "line-color": edgeColor,
+          "target-arrow-color": edgeColor,
         });
 
         // Update edge reference
