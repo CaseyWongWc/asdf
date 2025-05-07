@@ -243,7 +243,7 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       const allNodes = window.cy.nodes();
       
       // Apply to all nodes
-      allNodes.forEach(node => {
+      allNodes.forEach((node: any) => {
         node.style({
           'background-color': nodeColor,
           'shape': nodeShape,
@@ -257,13 +257,17 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
         // Don't modify text in batch operations
       });
       
-      // Save as default style for all nodes
-      setDefaultNodeStyle({...styleObj});
+      // Save as default style for all nodes - updating properties individually
+      Object.entries(styleObj).forEach(([property, value]) => {
+        setDefaultNodeStyle(property, value);
+      });
       
       setStatusMessage(`Updated styling for all ${allNodes.length} nodes`);
     } else if (styleScope === 'global') {
-      // Save as global default for future nodes
-      setDefaultNodeStyle({...styleObj});
+      // Save as global default for future nodes - updating properties individually
+      Object.entries(styleObj).forEach(([property, value]) => {
+        setDefaultNodeStyle(property, value);
+      });
       setStatusMessage('Updated default styling for new nodes');
     }
     
@@ -308,13 +312,15 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
         targetNode.data('bottomText', '');
         
         // Reset in style context
-        resetNodeStyles(nodeId);
+        resetNodeStyles([nodeId]);
         
         setStatusMessage('Node style reset to default');
       } else {
         // Reset all selected nodes
         const selectedNodes = window.cy.nodes('.selected-node');
-        selectedNodes.forEach(node => {
+        const selectedIds: string[] = [];
+        
+        selectedNodes.forEach((node: any) => {
           node.style({
             'background-color': defaultStyles.backgroundColor,
             'shape': defaultStyles.shape,
@@ -327,9 +333,14 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
             'text-outline-color': defaultStyles.backgroundColor
           });
           
-          // Reset in style context
-          resetNodeStyles(node.id());
+          // Collect IDs for batch reset
+          selectedIds.push(node.id());
         });
+        
+        // Reset all selected nodes at once
+        if (selectedIds.length > 0) {
+          resetNodeStyles(selectedIds);
+        }
         
         setStatusMessage(`Reset styling for ${selectedNodes.length} nodes`);
       }
@@ -340,7 +351,7 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       if (styleScope === 'all') {
         // Reset all nodes to default
         const allNodes = window.cy.nodes();
-        allNodes.forEach(node => {
+        allNodes.forEach((node: any) => {
           node.style({
             'background-color': defaultStyles.backgroundColor,
             'shape': defaultStyles.shape,
