@@ -225,15 +225,12 @@ export default function CytoscapeGraph() {
           return weight;
         },
         'font-size': isMobile ? '14px' : '12px',
-        'text-outline-width': '2px',
-        'text-outline-color': 'white',
-        'text-background-opacity': 1,
-        'text-background-color': '#e2e8f0',
-        'text-background-padding': '5px',
-        'text-background-shape': 'roundrectangle',
-        'text-rotation': 'autorotate',
+        'text-outline-width': '0px',
+        'text-background-opacity': 0,
+        'text-rotation': 'none',
+        'text-valign': 'top',
+        'text-halign': 'center',
         'text-margin-y': -10,
-        'text-margin-x': 0,
         'color': '#1a202c' // Darker text color
       }
     },
