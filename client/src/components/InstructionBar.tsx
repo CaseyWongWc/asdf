@@ -5,7 +5,7 @@ export default function InstructionBar() {
   
   return (
     <div className="bg-gray-50 py-2 px-4 border-b border-gray-200 text-sm text-gray-600 overflow-x-auto whitespace-nowrap">
-      <div className="max-w-7xl mx-auto flex items-center space-x-4">
+      <div className="w-full max-w-7xl mx-auto flex items-center justify-between space-x-6">
         {isMobile ? (
           // Mobile view - fewer items with more touch-oriented instructions
           <>

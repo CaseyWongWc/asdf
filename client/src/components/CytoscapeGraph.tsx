@@ -120,10 +120,55 @@ export default function CytoscapeGraph() {
           const node = event.target;
           
           if (sourceNode) {
-            // Create an edge if a source node was already selected
-            if (sourceNode !== node.id()) {
-              const edgeId = `e${Date.now()}`;
+            const edgeId = `e${Date.now()}`;
+            const isSelfLoop = sourceNode === node.id();
+            
+            if (isSelfLoop) {
+              // Check if a self-loop already exists
+              const existingSelfLoop = cy.edges().filter(
+                (edge: any) => (
+                  edge.data('source') === sourceNode && edge.data('target') === sourceNode
+                )
+              );
               
+              if (existingSelfLoop.length > 0) {
+                setStatusMessage('Self-loop already exists on this node');
+                node.removeClass('source-node');
+                setSourceNode(null);
+                return;
+              }
+              
+              // Create a self-loop with special styling
+              cy.add({
+                group: 'edges',
+                data: { 
+                  id: edgeId, 
+                  source: sourceNode, 
+                  target: sourceNode,
+                  weight: 1,
+                  label: '',
+                  description: '',
+                  descriptionPosition: 'above',
+                  curveStyle: 'bezier',
+                  curvature: 80, // Higher curvature for self-loops
+                  targetArrow: 'none'
+                }
+              }).style({
+                'target-arrow-shape': 'none',
+                'line-style': 'solid',
+                'curve-style': 'bezier',
+                'control-point-step-size': 80, // Higher step size for visibility
+                'loop-direction': '45deg', // Angle for the self-loop
+                'loop-sweep': '90deg' // Arc angle
+              });
+              
+              setEdgeCount(cy.edges().length);
+              setStatusMessage(`Created self-loop with weight 1`);
+              
+              // Deselect the source node after creating the self-loop
+              node.removeClass('source-node');
+              setSourceNode(null);
+            } else {
               // Check if an edge already exists between these nodes
               const existingEdge = cy.edges().filter(
                 (edge: any) => (
@@ -164,11 +209,6 @@ export default function CytoscapeGraph() {
               // Deselect the source node
               cy.getElementById(sourceNode).removeClass('source-node');
               setSourceNode(null);
-            } else {
-              // Clicked on the same node, deselect it
-              node.removeClass('source-node');
-              setSourceNode(null);
-              setStatusMessage('Source node deselected');
             }
           } else {
             // Select as source node
@@ -381,6 +421,16 @@ export default function CytoscapeGraph() {
         'border-width': '3px',
         'border-color': '#E53E3E',
         'background-color': '#FC8181'
+      }
+    },
+    // Self-loop edge style
+    {
+      selector: 'edge[source = target]',
+      style: {
+        'curve-style': 'bezier',
+        'control-point-step-size': 80,
+        'loop-direction': '45deg',
+        'loop-sweep': '90deg'
       }
     }
   ];
