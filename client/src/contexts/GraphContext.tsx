@@ -145,10 +145,10 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
     
     const cyInstance = cy || window.cy;
     if (cyInstance) {
-      // Check if edge already exists
-      const existingEdge = cyInstance.edges(`[source="${sourceId}"][target="${targetId}"]`);
-      if (existingEdge.length > 0) {
-        setStatusMessage('Edge already exists');
+      // Check if we already have 2 edges in this direction
+      const existingEdges = cyInstance.edges(`[source="${sourceId}"][target="${targetId}"]`);
+      if (existingEdges.length >= 2) {
+        setStatusMessage('Two edges already exist for these two same nodes');
         return null;
       }
       

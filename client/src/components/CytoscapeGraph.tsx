@@ -176,15 +176,15 @@ export default function CytoscapeGraph() {
               // Creating a self-loop
               console.log(`Creating self-loop on node ${nodeId}`);
               
-              // Check if a self-loop already exists
-              const existingSelfLoop = cy.edges().filter(
+              // Check if we already have the max number of allowed self-loops
+              const existingSelfLoops = cy.edges().filter(
                 (edge: any) => (
                   edge.data('source') === sourceNode && edge.data('target') === sourceNode
                 )
               );
               
-              if (existingSelfLoop.length > 0) {
-                setStatusMessage('Self-loop already exists on this node');
+              if (existingSelfLoops.length >= 2) {
+                setStatusMessage('Two self-loops already exist on this node');
                 sourceNodeElement.removeClass('source-node');
                 setSourceNode(null);
                 return;
@@ -227,17 +227,16 @@ export default function CytoscapeGraph() {
               // Creating an edge between two different nodes
               console.log(`Creating edge from ${sourceNode} to ${nodeId}`);
               
-              // Check if an edge already exists between these nodes
-              const existingEdge = cy.edges().filter(
+              // Check if we should limit the number of edges between the same nodes
+              const existingEdges = cy.edges().filter(
                 (edge: any) => (
-                  (edge.data('source') === sourceNode && edge.data('target') === nodeId) ||
-                  (edge.data('source') === nodeId && edge.data('target') === sourceNode)
+                  edge.data('source') === sourceNode && edge.data('target') === nodeId
                 )
               );
               
-              if (existingEdge.length > 0) {
-                console.log('Edge already exists between these nodes');
-                setStatusMessage('Edge already exists between these nodes');
+              if (existingEdges.length >= 2) {
+                console.log('Two edges already exist for these two same nodes');
+                setStatusMessage('Two edges already exist for these two same nodes');
               } else {
                 // Add a new edge with directed style
                 try {
