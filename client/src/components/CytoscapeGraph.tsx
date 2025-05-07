@@ -216,22 +216,34 @@ export default function CytoscapeGraph() {
         'arrow-scale': 1.5,
         'curve-style': 'straight',
         'label': (ele: any) => {
-          // Display both label and weight if label exists
-          const label = ele.data('label');
+          // Display only weight on the edge
           const weight = ele.data('weight');
-          if (label && label.length > 0) {
-            return `${label} (${weight})`;
-          }
           return weight;
         },
         'font-size': isMobile ? '14px' : '12px',
         'text-outline-width': '0px',
         'text-background-opacity': 0,
         'text-rotation': 'none',
-        'text-valign': 'top',
+        'text-valign': 'center',
         'text-halign': 'center',
-        'text-margin-y': -10,
         'color': '#1a202c' // Darker text color
+      }
+    },
+    {
+      // Add a selector for edges that have labels
+      selector: 'edge[label]',
+      style: {
+        'source-text-offset': 0,
+        'target-text-offset': 0,
+        'source-label': (ele: any) => {
+          const label = ele.data('label');
+          return label && label.length > 0 ? label : '';
+        },
+        'source-text-rotation': 'autorotate',
+        'source-text-margin-y': -20,
+        'source-text-margin-x': 0,
+        'font-size': isMobile ? '14px' : '12px',
+        'color': '#1a202c'
       }
     },
     {
