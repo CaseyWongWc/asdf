@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useContext, useState, useCallback } from "rea
 import { GraphContext } from "../contexts/GraphContext";
 import CytoscapeComponent from "react-cytoscapejs";
 import { useIsMobile } from "../hooks/use-mobile";
+import StylePanel from "./StylePanel";
 import {
   Dialog,
   DialogContent,
@@ -1756,6 +1757,9 @@ export default function CytoscapeGraph() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Style Panel */}
+      {mode === "editor" && <StylePanel />}
     </div>
   );
 }
