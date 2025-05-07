@@ -667,42 +667,31 @@ export default function CytoscapeGraph() {
         'background-color': '#FC8181'
       }
     },
-    // Self-loop edge style - This implements JFLAP-like self-loops
+    // Self-loop edge style with rectangular path (as shown in diagram)
     {
-      selector: 'edge',
+      selector: 'edge[isRectangularSelfLoop]',
       style: {
-        'curve-style': function(ele: any) {
-          // If the source and target are the same, it's a self-loop
-          return ele.data('source') === ele.data('target') ? 'bezier' : ele.style('curve-style');
-        },
-        'control-point-step-size': function(ele: any) {
-          // Use a larger control point for self-loops to make them more visible
-          return ele.data('source') === ele.data('target') ? 80 : ele.style('control-point-step-size');
-        },
-        'control-point-distance': function(ele: any) {
-          // Only apply to self-loops, gives more pronounced curve like JFLAP
-          return ele.data('source') === ele.data('target') ? 120 : 0;
-        },
-        'control-point-weight': function(ele: any) {
-          // Only apply to self-loops, gives more pronounced curve like JFLAP
-          return ele.data('source') === ele.data('target') ? 0.7 : 0.5;
-        },
-        'loop-direction': function(ele: any) {
-          // Apply JFLAP-inspired loop direction
-          if (ele.data('source') === ele.data('target')) {
-            // Allow custom loop direction as stored in data (or default to -45)
-            return ele.data('loopDirection') || '-45deg';
-          }
-          return '0deg';
-        },
-        'loop-sweep': function(ele: any) {
-          // Apply JFLAP-inspired loop sweep
-          if (ele.data('source') === ele.data('target')) {
-            // Allow custom loop sweep as stored in data (or default to 315)
-            return ele.data('loopSweep') || '315deg';
-          }
-          return '0deg';
-        }
+        'curve-style': 'segments',
+        'segment-distances': [40, 40, 40], // Right, up, left distances
+        'segment-weights': [0.25, 0.5, 0.75], // Positioning of control points
+        'edge-distances': 'node-position',
+        'target-arrow-shape': 'triangle',
+        'arrow-scale': 1.5,
+        'line-color': '#64748B',
+        'target-arrow-color': '#64748B'
+      }
+    },
+    
+    // Legacy self-loop style for backwards compatibility
+    {
+      selector: 'edge[source = target]:not([isRectangularSelfLoop])',
+      style: {
+        'curve-style': 'bezier',
+        'control-point-step-size': 80,
+        'control-point-distance': 120,
+        'control-point-weight': 0.7,
+        'loop-direction': '-45deg',
+        'loop-sweep': '315deg'
       }
     }
   ];
