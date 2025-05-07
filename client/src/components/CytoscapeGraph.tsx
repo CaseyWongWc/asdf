@@ -216,8 +216,12 @@ export default function CytoscapeGraph() {
         'arrow-scale': 1.5,
         'curve-style': 'straight',
         'label': (ele: any) => {
-          // Display only weight on the edge
+          // Display both label and weight if label exists
+          const label = ele.data('label');
           const weight = ele.data('weight');
+          if (label && label.length > 0) {
+            return `${label} (${weight})`;
+          }
           return weight;
         },
         'font-size': isMobile ? '14px' : '12px',
@@ -227,24 +231,6 @@ export default function CytoscapeGraph() {
         'text-valign': 'center',
         'text-halign': 'center',
         'color': '#1a202c' // Darker text color
-      }
-    },
-    {
-      // Add a selector for edges that have labels - center them above the edge weight
-      selector: 'edge[label]',
-      style: {
-        'mid-source-text-offset': '50%',
-        'mid-target-text-offset': '50%',
-        'mid-label': (ele: any) => {
-          const label = ele.data('label');
-          return label && label.length > 0 ? label : '';
-        },
-        'mid-text-rotation': 'none',
-        'mid-text-margin-y': -15,
-        'mid-text-margin-x': 0,
-        'font-size': isMobile ? '14px' : '12px',
-        'font-weight': 'bold',
-        'color': '#3182ce'
       }
     },
     {
