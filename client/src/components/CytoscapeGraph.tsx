@@ -667,9 +667,9 @@ export default function CytoscapeGraph() {
           // Format the text with special markers for styling
           let labelParts = [];
           
-          // Add top text if present (with a special marker)
+          // Add top text if present (with a more subtle indicator)
           if (topText) {
-            labelParts.push(`«${topText}»`);
+            labelParts.push(`⌈${topText}⌉`);
           }
           
           // Add main label
@@ -677,9 +677,9 @@ export default function CytoscapeGraph() {
             labelParts.push(mainLabel);
           }
           
-          // Add bottom text if present (with a special marker)
+          // Add bottom text if present (with a more subtle indicator)
           if (bottomText) {
-            labelParts.push(`『${bottomText}』`);
+            labelParts.push(`⌊${bottomText}⌋`);
           }
           
           return labelParts.join("\n");
@@ -690,6 +690,25 @@ export default function CytoscapeGraph() {
         "text-halign": "center",
         "font-family": "Arial, sans-serif",
         "text-margin-y": 0,
+        "color": "#333333", // Default color for all text
+      }
+    },
+    
+    // Special styling for top text to make it distinct
+    {
+      selector: "node[topText]",
+      style: {
+        // Apply special color to top text
+        "color": "#3182CE", // Blue color for top text
+      }
+    },
+    
+    // Special styling for bottom text to make it distinct
+    {
+      selector: "node[bottomText]", 
+      style: {
+        // Apply special color to bottom text
+        "color": "#805AD5", // Purple color for bottom text  
       }
     },
     
@@ -712,10 +731,10 @@ export default function CytoscapeGraph() {
         "background-blacken": 0.1,
         // Make text styling more prominent
         "font-weight": "normal",
-        "text-background-opacity": 0.9,
-        "text-background-color": "#E2E8F0",
-        "text-background-shape": "roundrectangle",
-        "text-background-padding": 3
+        "text-background-opacity": 0, // Fully transparent background
+        "text-outline-width": 2,
+        "text-outline-color": "white",
+        "text-outline-opacity": 0.9
       },
     },
     
@@ -737,10 +756,10 @@ export default function CytoscapeGraph() {
         // Add styling for better visibility
         "background-blacken": 0.1,
         "font-weight": "normal",
-        "text-background-opacity": 0.9,
-        "text-background-color": "#E2E8F0",
-        "text-background-shape": "roundrectangle",
-        "text-background-padding": 3
+        "text-background-opacity": 0, // Fully transparent background
+        "text-outline-width": 2,
+        "text-outline-color": "white",
+        "text-outline-opacity": 0.9
       },
     },
     // Basic edge style
