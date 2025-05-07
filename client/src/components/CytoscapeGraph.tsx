@@ -977,6 +977,23 @@ export default function CytoscapeGraph() {
         }
       }
     },
+    // Edge with weight style
+    {
+      selector: 'edge[weight]',
+      style: {
+        'label': function(ele: any) {
+          const weight = ele.data('weight');
+          const multiEdgeLabel = ele.data('multiEdgeLabel') || '';
+          return `${weight}${multiEdgeLabel}`;
+        },
+        'text-rotation': 'autorotate', // Rotate text to follow the edge
+        'text-margin-y': 0, // Center on edge
+        'text-valign': 'center', // Center vertically
+        'text-background-color': '#fff',
+        'text-background-opacity': 0.9,
+        'text-background-padding': '2px'
+      }
+    },
     // Edge with label but no weight style
     {
       selector: 'edge[!weight][label]',
@@ -1020,6 +1037,17 @@ export default function CytoscapeGraph() {
         'border-width': '3px',
         'border-color': '#E53E3E',
         'background-color': '#FC8181'
+      }
+    },
+    // Special style for self-loop weight labels
+    {
+      selector: 'edge[isRectangularSelfLoop][weight]',
+      style: {
+        'text-rotation': 'none', // Don't rotate text on self-loops
+        'text-margin-x': 30, // Position text on the horizontal part
+        'text-margin-y': -10, // Position above the horizontal part
+        'text-valign': 'top', // Above the edge
+        'text-halign': 'center' // Center on the horizontal part
       }
     },
     // Self-loop edge style with rectangular path (as shown in diagram)
