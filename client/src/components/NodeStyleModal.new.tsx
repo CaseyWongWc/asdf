@@ -49,6 +49,8 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   const [borderWidth, setBorderWidth] = useState<number[]>([2]);
   const [borderColor, setBorderColor] = useState('#2B6CB0');
   const [textColor, setTextColor] = useState('#FFFFFF');
+  const [topText, setTopText] = useState('');
+  const [bottomText, setBottomText] = useState('');
   
   // Load current node styling when modal opens
   useEffect(() => {
@@ -64,6 +66,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       setBorderWidth([parseInt(targetNode.style('border-width')) || 2]);
       setBorderColor(targetNode.style('border-color') || '#2B6CB0');
       setTextColor(targetNode.style('color') || '#FFFFFF');
+      
+      // Get top and bottom text if they exist
+      setTopText(targetNode.data('topText') || '');
+      setBottomText(targetNode.data('bottomText') || '');
     }
   }, [open, nodeId]);
   
@@ -87,10 +93,14 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       'text-outline-color': nodeColor
     });
     
-    // Update label if provided
+    // Update node data
     if (nodeLabel.trim()) {
       targetNode.data('label', nodeLabel.trim());
     }
+    
+    // Set top text and bottom text data
+    targetNode.data('topText', topText.trim());
+    targetNode.data('bottomText', bottomText.trim());
     
     setStatusMessage(`Node styling updated`);
     onOpenChange(false);
@@ -340,10 +350,24 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
           <div className="border-t pt-4 mt-4">
             <h3 className="text-base font-medium mb-4">Node Text Customization</h3>
             
+            {/* Top text (above node) */}
+            <div className="space-y-2 mb-4">
+              <Label htmlFor="top-text" className="text-sm font-medium">
+                <span className="font-medium">Top Text</span> <span className="text-xs text-gray-500">(appears above node)</span>
+              </Label>
+              <Input
+                id="top-text"
+                value={topText}
+                onChange={(e) => setTopText(e.target.value)}
+                placeholder="Text to display above node (optional)"
+                className="w-full"
+              />
+            </div>
+            
             {/* Node Label (main text) */}
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4">
               <Label htmlFor="node-label" className="text-sm font-medium">
-                <span className="font-bold">Node Label</span>
+                <span className="font-bold">Node Label</span> <span className="text-xs text-gray-500">(main text)</span>
               </Label>
               <Input
                 id="node-label"
@@ -351,6 +375,20 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
                 onChange={(e) => setNodeLabel(e.target.value)}
                 placeholder="Main node label/name"
                 className="w-full font-medium"
+              />
+            </div>
+            
+            {/* Bottom text (below node) */}
+            <div className="space-y-2">
+              <Label htmlFor="bottom-text" className="text-sm font-medium">
+                <span className="font-medium">Bottom Text</span> <span className="text-xs text-gray-500">(appears below node)</span>
+              </Label>
+              <Input
+                id="bottom-text"
+                value={bottomText}
+                onChange={(e) => setBottomText(e.target.value)}
+                placeholder="Text to display below node (optional)"
+                className="w-full"
               />
             </div>
           </div>

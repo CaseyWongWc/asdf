@@ -115,10 +115,86 @@ export default function CytoscapeGraph() {
         // Center the view on the new nodes
         cy.fit(cy.nodes(), 50); // 50px padding
       }, 500);
+      
+      // Setup position and removal event handlers
+      // These update or remove the top and bottom text DOM elements
+      cy.on('position', 'node', function(event: any) {
+        const node = event.target;
+        const nodeId = node.id();
+        
+        // Update position of top and bottom text elements
+        setTimeout(() => {
+          try {
+            const boundingBox = node.renderedBoundingBox();
+            
+            // Update top text position if it exists
+            const topTextElem = document.getElementById(`top-text-${nodeId}`);
+            if (topTextElem) {
+              topTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
+              topTextElem.style.top = `${boundingBox.y1 - 16}px`;
+            }
+            
+            // Update bottom text position if it exists
+            const bottomTextElem = document.getElementById(`bottom-text-${nodeId}`);
+            if (bottomTextElem) {
+              bottomTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
+              bottomTextElem.style.top = `${boundingBox.y2 + 16}px`;
+            }
+          } catch (error) {
+            console.error("Error updating text positions:", error);
+          }
+        }, 0);
+      });
+      
+      // Remove text elements when a node is removed
+      cy.on('remove', 'node', function(event: any) {
+        const nodeId = event.target.id();
+        
+        // Remove associated DOM elements
+        const topTextElem = document.getElementById(`top-text-${nodeId}`);
+        if (topTextElem) {
+          topTextElem.remove();
+        }
+        
+        const bottomTextElem = document.getElementById(`bottom-text-${nodeId}`);
+        if (bottomTextElem) {
+          bottomTextElem.remove();
+        }
+      });
+      
+      // Update text positions after zoom or pan
+      cy.on('zoom pan', function() {
+        // Get all nodes
+        const nodes = cy.nodes();
+        
+        // For each node, update its text positions
+        nodes.forEach((node: any) => {
+          const nodeId = node.id();
+          const boundingBox = node.renderedBoundingBox();
+          
+          // Update top text position if it exists
+          const topTextElem = document.getElementById(`top-text-${nodeId}`);
+          if (topTextElem) {
+            topTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
+            topTextElem.style.top = `${boundingBox.y1 - 16}px`;
+          }
+          
+          // Update bottom text position if it exists
+          const bottomTextElem = document.getElementById(`bottom-text-${nodeId}`);
+          if (bottomTextElem) {
+            bottomTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
+            bottomTextElem.style.top = `${boundingBox.y2 + 16}px`;
+          }
+        });
+      });
 
       // Cleanup function
       return () => {
         cy.removeAllListeners(); // Remove all registered event listeners
+        
+        // Also clean up any remaining text elements
+        document.querySelectorAll('.cytoscape-top-text, .cytoscape-bottom-text')
+          .forEach(el => el.remove());
       };
     }
   }, [setStatusMessage, setNodeCount, setEdgeCount]);
@@ -429,6 +505,116 @@ export default function CytoscapeGraph() {
         "border-color": "#2B6CB0",
         "shape": "ellipse",
       },
+    },
+    
+    // Top text label style (for UML-style "stereotype" display)
+    {
+      selector: "node[topText]",
+      style: {
+        "overlay-opacity": 0, // Make sure overlays don't interfere
+        // Create a separate label for top text
+        // This is a simplified approach that avoids the complex recursive styling
+        "label": function(ele: any) {
+          const topText = ele.data("topText");
+          if (topText && topText.length > 0) {
+            // Add the top text as an HTML element
+            setTimeout(() => {
+              try {
+                const nodeId = ele.id();
+                const boundingBox = ele.renderedBoundingBox();
+                
+                // Remove any existing top text element
+                const existingTopText = document.getElementById(`top-text-${nodeId}`);
+                if (existingTopText) {
+                  existingTopText.remove();
+                }
+                
+                // Create new element
+                const topTextElem = document.createElement("div");
+                topTextElem.id = `top-text-${nodeId}`;
+                topTextElem.className = "cytoscape-top-text";
+                topTextElem.textContent = topText;
+                topTextElem.style.position = "absolute";
+                topTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
+                topTextElem.style.top = `${boundingBox.y1 - 16}px`;
+                topTextElem.style.transform = "translate(-50%, -50%)";
+                topTextElem.style.fontFamily = "inherit";
+                topTextElem.style.fontSize = "11px";
+                topTextElem.style.fontWeight = "normal";
+                topTextElem.style.textAlign = "center";
+                topTextElem.style.padding = "2px 6px";
+                topTextElem.style.borderRadius = "4px";
+                topTextElem.style.backgroundColor = "#f3f4f6";
+                topTextElem.style.border = "1px solid #d1d5db";
+                topTextElem.style.color = "#1f2937";
+                topTextElem.style.pointerEvents = "none"; // Don't interfere with clicks
+                
+                // Add to DOM
+                document.body.appendChild(topTextElem);
+              } catch (error) {
+                console.error("Error creating top text label:", error);
+              }
+            }, 10);
+          }
+          
+          // Return the original label for the main text
+          return ele.data("label");
+        }
+      }
+    },
+    
+    // Bottom text label style
+    {
+      selector: "node[bottomText]",
+      style: {
+        "overlay-opacity": 0,
+        // Create a separate label for bottom text - same approach as top text
+        "label": function(ele: any) {
+          const bottomText = ele.data("bottomText");
+          if (bottomText && bottomText.length > 0) {
+            setTimeout(() => {
+              try {
+                const nodeId = ele.id();
+                const boundingBox = ele.renderedBoundingBox();
+                
+                // Remove any existing bottom text element
+                const existingBottomText = document.getElementById(`bottom-text-${nodeId}`);
+                if (existingBottomText) {
+                  existingBottomText.remove();
+                }
+                
+                // Create new element
+                const bottomTextElem = document.createElement("div");
+                bottomTextElem.id = `bottom-text-${nodeId}`;
+                bottomTextElem.className = "cytoscape-bottom-text";
+                bottomTextElem.textContent = bottomText;
+                bottomTextElem.style.position = "absolute";
+                bottomTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
+                bottomTextElem.style.top = `${boundingBox.y2 + 16}px`;
+                bottomTextElem.style.transform = "translate(-50%, -50%)";
+                bottomTextElem.style.fontFamily = "inherit";
+                bottomTextElem.style.fontSize = "11px";
+                bottomTextElem.style.fontWeight = "normal";
+                bottomTextElem.style.fontStyle = "italic";
+                bottomTextElem.style.textAlign = "center";
+                bottomTextElem.style.padding = "2px 6px";
+                bottomTextElem.style.backgroundColor = "#f8fafc";
+                bottomTextElem.style.border = "1px solid #e2e8f0";
+                bottomTextElem.style.color = "#475569";
+                bottomTextElem.style.pointerEvents = "none";
+                
+                // Add to DOM
+                document.body.appendChild(bottomTextElem);
+              } catch (error) {
+                console.error("Error creating bottom text label:", error);
+              }
+            }, 10);
+          }
+          
+          // Return the original label for the main text
+          return ele.data("label");
+        }
+      }
     },
     
     // Basic edge style
