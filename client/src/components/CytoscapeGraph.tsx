@@ -272,11 +272,20 @@ export default function CytoscapeGraph() {
                     }
                   });
                   
-                  // Apply styles to the new edge - always using unbundled-bezier now
+                  // Apply styles to the new edge - with visual differentiation for multiple edges
+                  const lineStyle = existingEdgeInDirection.length === 0 ? 'solid' : 'dashed';
+                  
+                  // Add a special indicator for multiple edges
+                  const edgeNumber = existingEdgeInDirection.length + 1;
+                  const multiEdgeLabel = edgeNumber > 1 ? `(${edgeNumber})` : '';
+                  
+                  newEdge.data('multiEdgeLabel', multiEdgeLabel);
+                  newEdge.data('edgeNumber', edgeNumber);
+                  
                   newEdge.style({
                     'target-arrow-shape': 'triangle',
                     'target-arrow-color': '#64748B',
-                    'line-style': 'solid',
+                    'line-style': lineStyle,
                     'curve-style': 'unbundled-bezier',
                     'control-point-distances': controlDistance,
                     'control-point-weights': 0.5
@@ -526,16 +535,26 @@ export default function CytoscapeGraph() {
         'label': (ele: any) => {
           const label = ele.data('label');
           const weight = ele.data('weight');
+          const multiEdgeLabel = ele.data('multiEdgeLabel') || '';
           
           if (label && label.length > 0) {
-            return `${label} (${weight})`;
+            return `${label} (${weight}) ${multiEdgeLabel}`;
           }
           
-          return weight.toString();
+          return `${weight}${multiEdgeLabel}`;
         },
         'text-background-opacity': 1,
         'text-background-color': '#ffffff',
         'text-background-padding': 3
+      }
+    },
+    // Style for second edge to make it visually distinct
+    {
+      selector: 'edge[edgeNumber = 2]',
+      style: {
+        'line-style': 'dashed',
+        'line-dash-pattern': [6, 3],
+        'line-color': '#805AD5' // Purple to distinguish from first edge
       }
     },
     // Edge with label but no weight style
