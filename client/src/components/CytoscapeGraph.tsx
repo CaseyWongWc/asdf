@@ -377,22 +377,46 @@ export default function CytoscapeGraph() {
 
                   newEdge.style(styleObj);
 
-                  // If this created a bidirectional relationship, update the opposite edge too
+                  // If this created a bidirectional relationship, update both edges for bracket appearance
                   if (hasBidirectional) {
-                    // Find the opposite direction edge and make it curved too with appropriate offset
-                    // Use -40 and 40 for bidirectional pairs to make them distinct but not too far apart
-                    oppositeEdge.style({
-                      "curve-style": "unbundled-bezier",
-                      "control-point-distances": -40, // Use a fixed offset for bidirectional edges
-                      "control-point-weights": 0.5,
-                    });
+                    // Get IDs to determine which was created first vs second
+                    const thisEdgeId = parseInt(newEdge.id().replace(/\D/g, ''));
+                    const oppositeEdgeId = parseInt(oppositeEdge.id().replace(/\D/g, ''));
                     
-                    // Adjust this edge as well for visual clarity in bidirectional pairs
-                    newEdge.style({
-                      "curve-style": "unbundled-bezier", 
-                      "control-point-distances": 40,
-                      "control-point-weights": 0.5,
-                    });
+                    // Create bracket-like appearance - one curves up, one curves down
+                    // First created edge curves upward, second created edge curves downward
+                    const upwardCurve = 60;   // Positive means curve upward
+                    const downwardCurve = -60; // Negative means curve downward
+                    
+                    if (thisEdgeId < oppositeEdgeId) {
+                      // This edge was created first, so it curves upward
+                      newEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": upwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+                      
+                      // The opposite edge curves downward
+                      oppositeEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": downwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+                    } else {
+                      // This edge was created second, so it curves downward
+                      newEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": downwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+                      
+                      // The opposite edge curves upward
+                      oppositeEdge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": upwardCurve,
+                        "control-point-weights": 0.5,
+                      });
+                    }
                   }
 
                   console.log(
@@ -610,21 +634,35 @@ export default function CytoscapeGraph() {
           const source = ele.data("source");
           const target = ele.data("target");
 
-          // We only want to detect edges going in opposite directions
-          // Not all edges between these two nodes
-          const oppositeDirectionEdges = cy
-            .edges()
-            .filter(
-              (e: any) =>
-                (e.data("source") === source && e.data("target") === target) && 
-                cy.edges(`[source = "${target}"][target = "${source}"]`).length > 0
-            );
-
-          // Only use curved edges if there are bidirectional edges
-          // Otherwise keep them straight (default style)
-          return oppositeDirectionEdges.length > 0
-            ? "unbundled-bezier"
-            : "straight";
+          // We want to curve only the backward edges in a bidirectional relationship
+          
+          // To solve the problem, we're going to make a hard decision:
+          // In a bidirectional pair (A→B and B→A), the one that was CREATED SECOND (B→A)
+          // will be curved, and the one CREATED FIRST (A→B) will be straight.
+          
+          // This simplistic approach handles it well enough for the graph editor.
+          
+          // Check if this is a backward edge by seeing if there's a forward edge
+          // We use the source/target relationship to determine which is which
+          
+          // Get the opposite direction edge
+          const oppositeEdge = cy.edges(`[source = "${target}"][target = "${source}"]`);
+          
+          // If there is no opposite edge, this can't be a backward edge
+          if (oppositeEdge.length === 0) return "straight";
+          
+          // If there is an opposite edge, then THIS edge should be curved if 
+          // it was created second (has a higher ID number)
+          
+          // For bidirectional edges, we want both edges to be curved in opposite directions
+          // Creating a bracket-like appearance
+          
+          // Get IDs of both edges to see which was created first
+          const thisEdgeId = parseInt(ele.id().replace(/\D/g, ''));
+          const oppositeEdgeId = parseInt(oppositeEdge.id().replace(/\D/g, ''));
+          
+          // Make both edges curved for bidirectional relationships
+          return "unbundled-bezier";
         },
         "control-point-distances": function (ele: any) {
           if (ele.data("source") === ele.data("target")) {
@@ -634,21 +672,37 @@ export default function CytoscapeGraph() {
           const cy = ele.cy();
           const source = ele.data("source");
           const target = ele.data("target");
-
-          // Get all edges between these nodes
-          const edgesBetween = cy
-            .edges()
-            .filter(
-              (e: any) =>
-                (e.data("source") === source && e.data("target") === target) ||
-                (e.data("source") === target && e.data("target") === source),
-            );
-
-          // Get index of current edge
-          const index = edgesBetween.indexOf(ele);
-
-          // Apply stronger gravity effect based on index
-          return index === 0 ? -100 : 100; // First edge above, second edge below with more pronounced curve
+          
+          // Check for bidirectional relationship
+          const oppositeEdge = cy.edges(`[source = "${target}"][target = "${source}"]`);
+          
+          if (oppositeEdge.length > 0) {
+            // This is part of a bidirectional pair - create bracket appearance
+            // Calculate edge IDs to determine which should curve up vs down
+            const thisEdgeId = parseInt(ele.id().replace(/\D/g, ''));
+            const oppositeEdgeId = parseInt(oppositeEdge.id().replace(/\D/g, ''));
+            
+            // Create bracket-like appearance - one curves up, one curves down
+            // First created edge curves upward, second created edge curves downward
+            // Using more pronounced curves (±60) for better bracket appearance
+            return thisEdgeId < oppositeEdgeId ? 60 : -60;
+          }
+          
+          // For multiple edges in same direction, check how many parallel edges exist
+          const parallelEdges = cy.edges(`[source = "${source}"][target = "${target}"]`);
+          
+          if (parallelEdges.length > 1) {
+            // We have multiple edges in same direction
+            const index = parallelEdges.indexOf(ele);
+            
+            // Fan out the edges with different offsets (-20, +20, +60)
+            if (index === 0) return -20;
+            if (index === 1) return 20;
+            return 60; // For any additional edges
+          }
+          
+          // Default case - no special handling needed (straight edge)
+          return 0;
         },
         "control-point-weights": 0.5,
       },
@@ -897,9 +951,11 @@ export default function CytoscapeGraph() {
       
       // If there was a bidirectional relationship, fix the opposite edge styling
       if (hasBidirectional) {
-        // Make the other edge straight again
+        // When we remove an edge, if it was part of a bidirectional pair (bracket),
+        // we need to make the remaining edge straight since it no longer needs to be curved
         oppositeEdge.style({
-          "curve-style": "straight"
+          "curve-style": "straight",
+          "control-point-distances": 0 // Reset control point distance for straight edge
         });
       }
       

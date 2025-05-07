@@ -1,0 +1,884 @@
+import { useEffect, useRef, useState } from "react";
+import cytoscape from "cytoscape";
+import { type Node, type Edge, type PrimVertexInfo } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+
+interface WeightedGraphEditorProps {
+  nodes: Node[];
+  edges: Edge[];
+  onGraphChange: (nodes: Node[], edges: Edge[]) => void;
+  highlightTreeEdges?: Edge[];
+  highlightCandidateEdges?: Edge[];
+  treeVertices?: string[];
+  remainingVertices?: string[];
+  currentMinEdge?: Edge | null;
+  rejectedEdges?: Edge[];
+  weightMatrix?: number[][];
+  readOnly?: boolean;
+  isDirected?: boolean;
+  // Dijkstra algorithm specific properties
+  sourceNodeId?: string;
+  targetNodeId?: string | null;
+  highlightPathNodes?: string[];
+  visitedNodes?: string[];
+  currentNode?: string | null;
+}
+
+const WeightedGraphEditor = ({
+  nodes,
+  edges,
+  onGraphChange,
+  highlightTreeEdges = [],
+  highlightCandidateEdges = [],
+  treeVertices = [],
+  remainingVertices = [],
+  currentMinEdge = null,
+  rejectedEdges = [],
+  weightMatrix = [],
+  readOnly = false,
+  isDirected = true,
+  sourceNodeId,
+  targetNodeId,
+  highlightPathNodes = [],
+  visitedNodes = [],
+  currentNode = null
+}: WeightedGraphEditorProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cyRef = useRef<cytoscape.Core | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [edgeWeight, setEdgeWeight] = useState<number>(1);
+
+  // Initialize cytoscape instance
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Reset event handlers state
+    const localNodes = [...nodes];
+    const localEdges = [...edges];
+    
+    cyRef.current = cytoscape({
+      container: containerRef.current,
+      style: [
+        {
+          selector: "node",
+          style: {
+            "background-color": "#eee",
+            "border-color": "#999",
+            "border-width": 1,
+            "text-valign": "center",
+            "text-halign": "center",
+            "label": "data(label)",
+            width: 40,
+            height: 40,
+            "font-size": "14px"
+          }
+        },
+        // For Kruskal's algorithm component visualization
+        {
+          selector: "node.source",
+          style: {
+            "background-color": "#93c5fd", // Light blue for u node
+            "border-color": "#2563eb",
+            "border-width": 2
+          }
+        },
+        {
+          selector: "node.target",
+          style: {
+            "background-color": "#f9a8d4", // Pink for v node
+            "border-color": "#db2777",
+            "border-width": 2
+          }
+        },
+        {
+          selector: "node.redComponent",
+          style: {
+            "background-color": "#fecaca", // Light red for component to be merged
+            "border-color": "#dc2626",
+            "border-width": 2
+          }
+        },
+        {
+          selector: "node.greenComponent",
+          style: {
+            "background-color": "#bbf7d0", // Light green for cycle detection
+            "border-color": "#16a34a",
+            "border-width": 2
+          }
+        },
+        {
+          selector: "edge",
+          style: {
+            width: 2,
+            "line-color": "#999",
+            "curve-style": "bezier",
+            "target-arrow-shape": "triangle",
+            "target-arrow-color": "#999",
+            "label": "data(weight)",
+            "font-size": "12px",
+            "text-background-opacity": 1,
+            "text-background-color": "#fff",
+            "text-background-shape": "rectangle",
+            "text-background-padding": "2px"
+          }
+        },
+
+        {
+          selector: "node.tree",
+          style: {
+            "background-color": "#4ade80",
+            "border-color": "#16a34a"
+          }
+        },
+        {
+          selector: "node.remaining",
+          style: {
+            "background-color": "#93c5fd",
+            "border-color": "#2563eb"
+          }
+        },
+        {
+          selector: "edge.tree",
+          style: {
+            "line-color": "#16a34a",
+            "target-arrow-color": "#16a34a",
+            width: 3
+          }
+        },
+        {
+          selector: "edge.candidate",
+          style: {
+            "line-color": "#3b82f6",
+            "target-arrow-color": "#3b82f6",
+            "line-style": "dashed"
+          }
+        },
+        {
+          selector: "edge.min",
+          style: {
+            "line-color": "#f97316",
+            "target-arrow-color": "#f97316",
+            width: 3
+          }
+        },
+        {
+          selector: "edge.rejected",
+          style: {
+            "line-color": "#ef4444",
+            "target-arrow-color": "#ef4444",
+            "line-style": "dotted",
+            "opacity": 0.5
+          }
+        },
+        {
+          selector: "node:selected",
+          style: {
+            "border-width": 3,
+            "border-color": "#f97316"
+          }
+        },
+        {
+          selector: "edge:selected",
+          style: {
+            width: 3,
+            "line-color": "#f97316",
+            "target-arrow-color": "#f97316"
+          }
+        }
+      ],
+      layout: {
+        name: "preset"
+      },
+      wheelSensitivity: 0.1,
+      minZoom: 0.5,
+      maxZoom: 2
+    });
+
+    // Global variables for event handlers
+    let sourceNode: Node | null = null;
+
+    // Setup event handlers if not in read-only mode
+    if (!readOnly) {
+      // Click on background to add a node
+      const handleBackgroundTap = function(evt: cytoscape.EventObject) {
+        if (evt.target === cyRef.current) {
+          const position = evt.position;
+          const newNodeId = `n${Date.now()}`;
+          const nodeIndex = nodes.length;
+          const label = String.fromCharCode(65 + nodeIndex % 26) + 
+                        (nodeIndex >= 26 ? Math.floor(nodeIndex / 26).toString() : "");
+          
+          const newNode: Node = {
+            id: newNodeId,
+            label,
+            x: position.x,
+            y: position.y
+          };
+          
+          const updatedNodes = [...nodes, newNode];
+          onGraphChange(updatedNodes, edges);
+        }
+      };
+
+      // Click on a node to start/end edge creation
+      const handleNodeTap = function(evt: cytoscape.EventObject) {
+        const clickedNodeId = evt.target.id();
+        const clickedNode = nodes.find(n => n.id === clickedNodeId);
+        
+        if (!clickedNode) return;
+        
+        if (!sourceNode) {
+          // Start edge creation
+          sourceNode = clickedNode;
+        } else if (sourceNode.id !== clickedNode.id) {
+          // Complete edge creation
+          // Check if there are already edges between these nodes
+          const existingEdges = edges.filter(e => 
+            (e.source === sourceNode!.id && e.target === clickedNode.id) || 
+            (e.source === clickedNode.id && e.target === sourceNode!.id)
+          );
+          
+          if (isDirected) {
+            // In directed mode, only check for exact edge
+            const existingDirectedEdge = existingEdges.find(e => 
+              e.source === sourceNode!.id && e.target === clickedNode.id
+            );
+            
+            if (!existingDirectedEdge) {
+              const timestamp = Date.now();
+              const newEdge: Edge = {
+                id: `e${timestamp}`,
+                source: sourceNode.id,
+                target: clickedNode.id,
+                weight: 1,
+                isDirected: isDirected
+              };
+              
+              onGraphChange(nodes, [...edges, newEdge]);
+              
+              // Select the new edge for weight editing
+              setSelectedEdge(newEdge);
+              setEdgeWeight(1);
+            }
+          }
+          else {
+            // In undirected mode, check for any edge between these nodes
+            if (existingEdges.length === 0) {
+              const timestamp = Date.now();
+              const newEdge: Edge = {
+                id: `e${timestamp}`,
+                source: sourceNode.id,
+                target: clickedNode.id,
+                weight: 1,
+                isDirected: isDirected
+              };
+              
+              const reverseEdge: Edge = {
+                id: `e${timestamp}r`,  // Different ID but related to forward edge
+                source: clickedNode.id,
+                target: sourceNode.id,
+                weight: 1,
+                isDirected: isDirected
+              };
+              
+              onGraphChange(nodes, [...edges, newEdge, reverseEdge]);
+              
+              // Select the new edge for weight editing
+              setSelectedEdge(newEdge);
+              setEdgeWeight(1);
+            }
+            // If edges exist, don't create new ones
+          }
+          
+          sourceNode = null;
+        } else {
+          // Clicked same node, cancel edge creation
+          sourceNode = null;
+        }
+      };
+
+      // Right-click to delete node or edge
+      const handleContextTap = function(evt: cytoscape.EventObject) {
+        const elementId = evt.target.id();
+        
+        if (evt.target.isNode()) {
+          // Delete node and all connected edges
+          const updatedNodes = nodes.filter(n => n.id !== elementId);
+          const updatedEdges = edges.filter(e => 
+            e.source !== elementId && e.target !== elementId
+          );
+          
+          onGraphChange(updatedNodes, updatedEdges);
+        } else if (evt.target.isEdge()) {
+          // Get the edge to delete
+          const edgeToDelete = edges.find(e => e.id === elementId);
+          
+          if (edgeToDelete) {
+            let updatedEdges;
+            
+            if (!isDirected && edgeToDelete.id.endsWith('r')) {
+              // For undirected graphs, also remove the paired forward edge
+              const forwardEdgeId = edgeToDelete.id.slice(0, -1);
+              updatedEdges = edges.filter(e => e.id !== elementId && e.id !== forwardEdgeId);
+            } else if (!isDirected) {
+              // For undirected graphs, also remove the paired reverse edge
+              const reverseEdgeId = `${edgeToDelete.id}r`;
+              updatedEdges = edges.filter(e => e.id !== elementId && e.id !== reverseEdgeId);
+            } else {
+              // For directed graphs, just remove this edge
+              updatedEdges = edges.filter(e => e.id !== elementId);
+            }
+            
+            onGraphChange(nodes, updatedEdges);
+          }
+        }
+      };
+
+      // Click on edge to edit weight
+      const handleEdgeTap = function(evt: cytoscape.EventObject) {
+        const edgeId = evt.target.id();
+        const edge = edges.find(e => e.id === edgeId);
+        
+        if (edge) {
+          setSelectedEdge(edge);
+          setEdgeWeight(edge.weight || 1);
+        }
+      };
+
+      // Enable drag-and-drop for nodes
+      const handleNodeDragFree = function(evt: cytoscape.EventObject) {
+        const nodeId = evt.target.id();
+        const position = evt.target.position();
+        
+        const updatedNodes = nodes.map(node => {
+          if (node.id === nodeId) {
+            return { ...node, x: position.x, y: position.y };
+          }
+          return node;
+        });
+        
+        onGraphChange(updatedNodes, edges);
+      };
+
+      // Register event handlers
+      cyRef.current.on("tap", handleBackgroundTap);
+      cyRef.current.on("tap", "node", handleNodeTap);
+      cyRef.current.on("cxttap", "node, edge", handleContextTap);
+      cyRef.current.on("tap", "edge", handleEdgeTap);
+      cyRef.current.on("dragfree", "node", handleNodeDragFree);
+      
+      // Clean up event handlers when component unmounts
+      return () => {
+        if (cyRef.current) {
+          cyRef.current.off("tap", handleBackgroundTap);
+          cyRef.current.off("tap", "node", handleNodeTap);
+          cyRef.current.off("cxttap", "node, edge", handleContextTap);
+          cyRef.current.off("tap", "edge", handleEdgeTap);
+          cyRef.current.off("dragfree", "node", handleNodeDragFree);
+          cyRef.current.destroy();
+          cyRef.current = null;
+        }
+      };
+    }
+    
+    // If read-only, just cleanup Cytoscape instance
+    return () => {
+      if (cyRef.current) {
+        cyRef.current.destroy();
+        cyRef.current = null;
+      }
+    };
+  }, [nodes, edges, onGraphChange, readOnly, isDirected]);
+
+  // Update cytoscape elements when props change
+  useEffect(() => {
+    if (!cyRef.current) return;
+
+    // Clear existing elements
+    cyRef.current.elements().remove();
+
+    // Add nodes
+    nodes.forEach(node => {
+      cyRef.current!.add({
+        group: "nodes",
+        data: {
+          id: node.id,
+          label: node.label
+        },
+        position: {
+          x: node.x,
+          y: node.y
+        }
+      });
+    });
+
+    // Add edges - for undirected graphs, only add the forward edges (not the reverse pairs)
+    edges.forEach(edge => {
+      // For undirected graphs, skip the reverse edges (they end with 'r')
+      if (!isDirected && edge.id.endsWith('r')) {
+        return;
+      }
+      
+      // Add edge to Cytoscape
+      const edgeElement = cyRef.current!.add({
+        group: "edges",
+        data: {
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          weight: edge.weight
+        }
+      });
+      
+      // Apply style properties from the edge object (for algorithm visualizations)
+      const styleOptions: any = {};
+      
+      // Apply custom color if provided
+      if (edge.color) {
+        styleOptions['line-color'] = edge.color;
+        styleOptions['target-arrow-color'] = edge.color;
+      }
+      
+      // Apply custom width if provided
+      if (edge.width) {
+        styleOptions['width'] = edge.width;
+      }
+      
+      // Apply dashed style if specified
+      if (edge.dashed) {
+        styleOptions['line-style'] = 'dashed';
+      }
+      
+      // Apply undirected style directly if needed
+      if (!isDirected) {
+        styleOptions['target-arrow-shape'] = 'none';
+        styleOptions['curve-style'] = 'straight';
+        if (!edge.dashed) {
+          styleOptions['line-style'] = 'solid';
+        }
+      }
+      
+      // Apply all collected styles to the edge
+      if (Object.keys(styleOptions).length > 0) {
+        edgeElement.style(styleOptions);
+      }
+    });
+
+    // Apply classes for highlighted elements
+    
+    // Tree vertices
+    treeVertices.forEach(nodeId => {
+      const nodeEle = cyRef.current!.getElementById(nodeId);
+      if (nodeEle.length > 0) {
+        nodeEle.addClass("tree");
+      }
+    });
+    
+    // Remaining vertices
+    remainingVertices.forEach(nodeId => {
+      const nodeEle = cyRef.current!.getElementById(nodeId);
+      if (nodeEle.length > 0) {
+        nodeEle.addClass("remaining");
+      }
+    });
+    
+    // Dijkstra algorithm visualization
+    
+    // Highlight source node
+    if (sourceNodeId) {
+      const sourceEle = cyRef.current!.getElementById(sourceNodeId);
+      if (sourceEle.length > 0) {
+        sourceEle.style({
+          'background-color': '#60a5fa',
+          'border-color': '#2563eb',
+          'border-width': 3,
+          'width': 45,
+          'height': 45
+        });
+      }
+    }
+    
+    // Highlight target node if specified
+    if (targetNodeId) {
+      const targetEle = cyRef.current!.getElementById(targetNodeId);
+      if (targetEle.length > 0) {
+        targetEle.style({
+          'background-color': '#f87171',
+          'border-color': '#dc2626',
+          'border-width': 3,
+          'width': 45,
+          'height': 45
+        });
+      }
+    }
+    
+    // Highlight visited nodes
+    visitedNodes.forEach(nodeId => {
+      if (nodeId === sourceNodeId || nodeId === targetNodeId) return; // Skip source/target
+      if (nodeId === currentNode) return; // Skip current node handled below
+      
+      const nodeEle = cyRef.current!.getElementById(nodeId);
+      if (nodeEle.length > 0) {
+        nodeEle.style({
+          'background-color': '#a78bfa',
+          'border-color': '#7c3aed',
+          'border-width': 2
+        });
+      }
+    });
+    
+    // Highlight current node being processed
+    if (currentNode) {
+      const currNodeEle = cyRef.current!.getElementById(currentNode);
+      if (currNodeEle.length > 0) {
+        currNodeEle.style({
+          'background-color': '#34d399',
+          'border-color': '#059669',
+          'border-width': 3,
+          'width': 43,
+          'height': 43
+        });
+      }
+    }
+    
+    // Highlight shortest path edges and nodes
+    if (highlightPathNodes.length >= 2) {
+      for (let i = 0; i < highlightPathNodes.length - 1; i++) {
+        const sourceId = highlightPathNodes[i];
+        const targetId = highlightPathNodes[i + 1];
+        
+        // Find edge from source to target
+        const edge = edges.find(e => 
+          (e.source === sourceId && e.target === targetId) ||
+          (!isDirected && e.source === targetId && e.target === sourceId)
+        );
+        
+        // Highlight edge if found
+        if (edge) {
+          const edgeEle = cyRef.current!.getElementById(edge.id);
+          if (edgeEle.length > 0) {
+            edgeEle.style({
+              'line-color': '#059669',
+              'target-arrow-color': '#059669',
+              'width': 4
+            });
+          }
+        }
+        
+        // Also highlight path nodes with a special border
+        if (i > 0 && i < highlightPathNodes.length - 1) { // Skip source and target
+          const nodeEle = cyRef.current!.getElementById(sourceId);
+          if (nodeEle.length > 0) {
+            nodeEle.style({
+              'background-color': '#a7f3d0',
+              'border-color': '#059669',
+              'border-width': 2
+            });
+          }
+        }
+      }
+    }
+    
+    // Kruskal's algorithm component visualization
+    nodes.forEach(node => {
+      const nodeEle = cyRef.current!.getElementById(node.id);
+      if (!nodeEle.length) return;
+      
+      // Apply source node highlighting (u - light blue)
+      if (node.isSource) {
+        nodeEle.addClass("source");
+      }
+      
+      // Apply target node highlighting (v - pink)
+      if (node.isTarget) {
+        nodeEle.addClass("target");
+      }
+      
+      // Apply component coloring based on the node's componentColor property
+      if (node.componentColor) {
+        if (node.componentColor === 'red') {
+          nodeEle.addClass("redComponent");
+        } else if (node.componentColor === 'green') {
+          nodeEle.addClass("greenComponent");
+        }
+      }
+    });
+    
+    // Tree edges
+    highlightTreeEdges.forEach(edge => {
+      const edgeEle = cyRef.current!.getElementById(edge.id);
+      if (edgeEle.length > 0) {
+        edgeEle.addClass("tree");
+      }
+    });
+    
+    // Candidate edges
+    highlightCandidateEdges.forEach(edge => {
+      const edgeEle = cyRef.current!.getElementById(edge.id);
+      if (edgeEle.length > 0) {
+        edgeEle.addClass("candidate");
+      }
+    });
+    
+    // Current minimum edge
+    if (currentMinEdge) {
+      const minEdgeEle = cyRef.current!.getElementById(currentMinEdge.id);
+      if (minEdgeEle.length > 0) {
+        minEdgeEle.addClass("min");
+      }
+    }
+    
+    // Rejected edges (for Kruskal's algorithm)
+    if (rejectedEdges && rejectedEdges.length > 0) {
+      rejectedEdges.forEach(edge => {
+        const edgeEle = cyRef.current!.getElementById(edge.id);
+        if (edgeEle.length > 0) {
+          edgeEle.addClass("rejected");
+        }
+      });
+    }
+    
+    // Fit to view
+    if (nodes.length > 0) {
+      cyRef.current.fit();
+      cyRef.current.center();
+    }
+  }, [
+    nodes, 
+    edges, 
+    treeVertices, 
+    remainingVertices, 
+    highlightTreeEdges, 
+    highlightCandidateEdges, 
+    currentMinEdge, 
+    rejectedEdges, 
+    isDirected,
+    sourceNodeId,
+    targetNodeId,
+    highlightPathNodes,
+    visitedNodes,
+    currentNode
+  ]);
+
+  // Handle edge weight update
+  const handleEdgeWeightChange = () => {
+    if (!selectedEdge) return;
+    
+    let updatedEdges = [...edges];
+    
+    if (!isDirected) {
+      // For undirected graphs, we need to ensure both directions have the same weight
+      
+      // First find any existing edge in the opposite direction
+      const oppositeEdge = edges.find(e => 
+        (e.source === selectedEdge.target && e.target === selectedEdge.source)
+      );
+      
+      if (oppositeEdge) {
+        // For paired edges with our r-suffix naming convention
+        if (selectedEdge.id.endsWith('r') && oppositeEdge.id === selectedEdge.id.slice(0, -1)) {
+          // If the selected edge is a reverse edge, update both edges
+          updatedEdges = edges.map(edge => {
+            if (edge.id === selectedEdge.id || edge.id === oppositeEdge.id) {
+              return { ...edge, weight: edgeWeight };
+            }
+            return edge;
+          });
+        } 
+        else if (!selectedEdge.id.endsWith('r') && oppositeEdge.id === `${selectedEdge.id}r`) {
+          // If the selected edge is a forward edge, update both edges
+          updatedEdges = edges.map(edge => {
+            if (edge.id === selectedEdge.id || edge.id === oppositeEdge.id) {
+              return { ...edge, weight: edgeWeight };
+            }
+            return edge;
+          });
+        }
+        else {
+          // If there's an existing opposite direction edge but not with our paired naming convention,
+          // update both to the same weight
+          updatedEdges = edges.map(edge => {
+            if (edge.id === selectedEdge.id || 
+                (edge.source === selectedEdge.target && edge.target === selectedEdge.source)) {
+              return { ...edge, weight: edgeWeight };
+            }
+            return edge;
+          });
+        }
+      } 
+      else {
+        // If there's no opposite edge, create one
+        updatedEdges = edges.map(edge => {
+          if (edge.id === selectedEdge.id) {
+            return { ...edge, weight: edgeWeight };
+          }
+          return edge;
+        });
+        
+        // Add the reverse edge with the 'r' suffix
+        const reverseEdge: Edge = {
+          id: `${selectedEdge.id}r`,
+          source: selectedEdge.target,
+          target: selectedEdge.source,
+          weight: edgeWeight,
+          isDirected: isDirected
+        };
+        updatedEdges.push(reverseEdge);
+      }
+    } 
+    else {
+      // For directed graphs, just update the selected edge
+      updatedEdges = edges.map(edge => {
+        if (edge.id === selectedEdge.id) {
+          return { ...edge, weight: edgeWeight };
+        }
+        return edge;
+      });
+    }
+    
+    onGraphChange(nodes, updatedEdges);
+    setSelectedEdge(null);
+  };
+
+  const handleGraphTypeChange = (newIsDirected: boolean) => {
+    let updatedEdges = [...edges];
+    
+    // When switching from directed to undirected
+    if (!newIsDirected && isDirected) {
+      // First identify all pairs of nodes with edges between them
+      const nodePairs = new Map<string, Edge[]>();
+      
+      // Group edges by their node pairs
+      edges.forEach(edge => {
+        // Create a unique key for the node pair regardless of direction
+        const pairKey = [edge.source, edge.target].sort().join('-');
+        if (!nodePairs.has(pairKey)) {
+          nodePairs.set(pairKey, []);
+        }
+        nodePairs.get(pairKey)!.push(edge);
+      });
+      
+      // Process each node pair
+      updatedEdges = [];
+      nodePairs.forEach((pairEdges, pairKey) => {
+        // If there's only one edge, create an undirected pair
+        if (pairEdges.length === 1) {
+          const edge = pairEdges[0];
+          // Add the forward edge
+          updatedEdges.push({
+            ...edge,
+            isDirected: newIsDirected
+          });
+          
+          // Add the reverse edge
+          updatedEdges.push({
+            id: `${edge.id}r`,
+            source: edge.target,
+            target: edge.source,
+            weight: edge.weight,
+            isDirected: newIsDirected
+          });
+        } 
+        // If there are two edges with the same weight, keep both and mark as undirected
+        else if (pairEdges.length === 2 && pairEdges[0].weight === pairEdges[1].weight) {
+          pairEdges.forEach(edge => {
+            updatedEdges.push({
+              ...edge,
+              isDirected: newIsDirected
+            });
+          });
+        }
+        // If there are two edges with different weights, don't keep either one
+        // This effectively removes edges with different weights when converting to undirected
+      });
+    }
+    
+    // When switching from undirected to directed
+    if (newIsDirected && !isDirected) {
+      // Remove all reverse edges (those with IDs ending in 'r')
+      updatedEdges = edges
+        .filter(edge => !edge.id.endsWith('r'))
+        .map(edge => ({
+          ...edge,
+          isDirected: newIsDirected
+        }));
+    }
+    
+    onGraphChange(nodes, updatedEdges);
+  };
+  
+  return (
+    <div className="relative border rounded-lg overflow-hidden shadow-sm bg-white">
+      <div 
+        ref={containerRef} 
+        className="w-full h-[400px]"
+      ></div>
+      
+      {/* Edge Weight Edit Panel */}
+      {selectedEdge && !readOnly && (
+        <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md border">
+          <h4 className="text-sm font-medium mb-2">Edge Weight</h4>
+          <div className="flex space-x-2">
+            <input
+              type="number"
+              value={edgeWeight}
+              onChange={(e) => setEdgeWeight(Number(e.target.value))}
+              min={1}
+              max={100}
+              className="w-16 px-2 py-1 border rounded text-sm"
+            />
+            <button
+              onClick={handleEdgeWeightChange}
+              className="px-3 py-1 bg-primary text-white rounded-md text-sm hover:bg-primary-dark"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setSelectedEdge(null)}
+              className="px-3 py-1 bg-neutral-200 text-neutral-700 rounded-md text-sm hover:bg-neutral-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Graph Type Controls (only when not in read-only mode) */}
+      {!readOnly && (
+        <div className="absolute top-4 left-4 bg-white p-2 rounded-lg shadow-md border">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-medium">Graph Type:</span>
+            <div className="flex">
+              <Button
+                variant={isDirected ? "default" : "outline"}
+                size="sm"
+                className="text-xs rounded-r-none px-2"
+                onClick={() => handleGraphTypeChange(true)}
+              >
+                Directed
+              </Button>
+              <Button
+                variant={!isDirected ? "default" : "outline"}
+                size="sm"
+                className="text-xs rounded-l-none px-2"
+                onClick={() => handleGraphTypeChange(false)}
+              >
+                Undirected
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Instructions */}
+      {!readOnly && (
+        <div className="p-2 text-xs text-neutral-500 border-t">
+          <p className="mb-1">Click: Add node | Click + Drag: Move node</p>
+          <p>Click nodes in sequence: Add edge | Right-click: Delete | Click edge: Edit weight</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WeightedGraphEditor;
