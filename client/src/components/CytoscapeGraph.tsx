@@ -260,10 +260,10 @@ export default function CytoscapeGraph() {
                     edge.data("target") === nodeId,
                 );
 
-              if (existingEdges.length >= 2) {
-                console.log("Two edges already exist for these two same nodes");
+              if (existingEdges.length >= 3) {
+                console.log("Maximum of 3 edges already exist between these nodes");
                 setStatusMessage(
-                  "Two edges already exist for these two same nodes",
+                  "Maximum of 3 edges allowed between the same nodes",
                 );
               } else {
                 // Add a new edge with directed style
@@ -318,6 +318,27 @@ export default function CytoscapeGraph() {
 
                   newEdge.data("multiEdgeLabel", multiEdgeLabel);
                   newEdge.data("edgeNumber", edgeNumber);
+                  
+                  // If there are multiple edges in same direction, offset them slightly
+                  if (existingEdgeInDirection.length > 0) {
+                    // Apply offset regardless of whether it's a bidirectional relationship
+                    const offset = edgeNumber * 8; // Increase offset for each edge
+                    newEdge.style({
+                      "curve-style": "unbundled-bezier",
+                      "control-point-distances": offset,
+                      "control-point-weights": 0.5,
+                    });
+                    
+                    // Update existing edges with progressive offset
+                    existingEdgeInDirection.forEach((edge: any, i: number) => {
+                      const oldOffset = (i+1) * 8;
+                      edge.style({
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": oldOffset,
+                        "control-point-weights": 0.5,
+                      });
+                    });
+                  }
 
                   const styleObj: any = {
                     "target-arrow-shape": "triangle",
@@ -831,10 +852,56 @@ export default function CytoscapeGraph() {
   // Handle edge deletion
   const deleteEdge = () => {
     if (currentEdge && cyRef.current) {
-      cyRef.current.remove(currentEdge);
+      const cy = cyRef.current;
+      
+      // Before deleting, check if this is part of a bidirectional pair
+      const sourceId = currentEdge.data("source");
+      const targetId = currentEdge.data("target");
+      
+      // Find any edge going in the opposite direction
+      const oppositeEdge = cy.edges(`[source = "${targetId}"][target = "${sourceId}"]`);
+      const hasBidirectional = oppositeEdge.length > 0;
+      
+      // Delete the current edge
+      cy.remove(currentEdge);
+      
+      // If there was a bidirectional relationship, fix the opposite edge styling
+      if (hasBidirectional) {
+        // Make the other edge straight again
+        oppositeEdge.style({
+          "curve-style": "straight"
+        });
+      }
+      
+      // Get all edges in the same direction
+      const parallelEdges = cy.edges(`[source = "${sourceId}"][target = "${targetId}"]`);
+      
+      // If there are other parallel edges, reapply their styling with correct offsets
+      if (parallelEdges.length > 0) {
+        parallelEdges.forEach((edge: any, i: number) => {
+          const offset = (i+1) * 8; // Progressive offset
+          
+          edge.style({
+            "curve-style": "unbundled-bezier",
+            "control-point-distances": offset,
+            "control-point-weights": 0.5
+          });
+          
+          // Update the edge number and label
+          edge.data("edgeNumber", i+1);
+          
+          const label = edge.data("label") || "";
+          const weight = edge.data("weight") || "";
+          const weightStr = weight ? `(${weight})` : "";
+          
+          const multiEdgeLabel = i > 0 ? `(${i+1})` : "";
+          edge.data("multiEdgeLabel", multiEdgeLabel);
+        });
+      }
+      
       setCurrentEdge(null);
       setEditEdgeOpen(false);
-      setEdgeCount(cyRef.current.edges().length);
+      setEdgeCount(cy.edges().length);
       setStatusMessage("Edge deleted");
     }
   };
