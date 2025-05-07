@@ -283,9 +283,10 @@ export default function CytoscapeGraph() {
                 )
               );
               
-              if (existingEdges.length >= 2) {
-                console.log('Two edges already exist for these two same nodes');
-                setStatusMessage('Two edges already exist for these two same nodes');
+              // Allow up to 7 edges in the same direction (our containment code will handle proper display)
+              if (existingEdges.length >= 7) {
+                console.log('Maximum number of edges already exist between these nodes');
+                setStatusMessage('Maximum number of edges already exist between these nodes');
               } else {
                 // Add a new edge with directed style
                 try {
@@ -653,16 +654,41 @@ export default function CytoscapeGraph() {
           
           // Calculate offset based on node diameter and number of edges
           const nodeSize = 40; // Base node size in pixels
-          const maxOffset = nodeSize / 2 - 5; // Maximum offset slightly less than node radius to avoid overspill
+          const nodeRadius = nodeSize / 2;
           
-          // Calculate normalized position from -1 to 1
-          // With 2 edges: -0.5 and 0.5
-          // With 3 edges: -0.67, 0, 0.67
-          // With 4 edges: -0.75, -0.25, 0.25, 0.75
-          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          // Calculate maximum edges that can fit within node boundaries
+          // We need minimum 6px space between edges for visibility
+          const minSpaceBetweenEdges = 6;
+          const maxPossibleEdges = Math.floor(nodeSize / minSpaceBetweenEdges);
           
-          // Scale to actual offset
-          const offset = Math.round(normalizedPosition * maxOffset);
+          // If we have more edges than can fit with minimum spacing,
+          // we need to adjust our distribution to stay within node boundaries
+          let offset;
+          
+          if (totalEdges <= maxPossibleEdges) {
+            // We have enough space to distribute edges evenly
+            const maxOffset = nodeRadius - 5; // Keep 5px safety margin from edge
+            
+            // Calculate normalized position from -1 to 1
+            // With 2 edges: -0.5 and 0.5
+            // With 3 edges: -0.67, 0, 0.67
+            // With 4 edges: -0.75, -0.25, 0.25, 0.75
+            const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+            
+            // Scale to actual offset
+            offset = Math.round(normalizedPosition * maxOffset);
+          } else {
+            // Too many edges to fit with minimum spacing
+            // We'll distribute them within the node boundaries at minimum spacing
+            
+            // Calculate total width needed for all edges with minimum spacing
+            const totalWidth = totalEdges * minSpaceBetweenEdges;
+            
+            // Calculate the distance from center to edge position
+            // Centers all edges within node regardless of count
+            const startPosition = -nodeRadius + (nodeSize - totalWidth) / 2 + minSpaceBetweenEdges/2;
+            offset = Math.round(startPosition + edgeIndex * minSpaceBetweenEdges);
+          }
           
           return `0 ${offset}px`;
         },
@@ -692,13 +718,38 @@ export default function CytoscapeGraph() {
           
           // Calculate offset based on node diameter and number of edges
           const nodeSize = 40; // Base node size in pixels
-          const maxOffset = nodeSize / 2 - 5; // Maximum offset slightly less than node radius
+          const nodeRadius = nodeSize / 2;
           
-          // Calculate normalized position from -1 to 1
-          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          // Calculate maximum edges that can fit within node boundaries
+          // We need minimum 6px space between edges for visibility
+          const minSpaceBetweenEdges = 6;
+          const maxPossibleEdges = Math.floor(nodeSize / minSpaceBetweenEdges);
           
-          // Scale to actual offset
-          const offset = Math.round(normalizedPosition * maxOffset);
+          // If we have more edges than can fit with minimum spacing,
+          // we need to adjust our distribution to stay within node boundaries
+          let offset;
+          
+          if (totalEdges <= maxPossibleEdges) {
+            // We have enough space to distribute edges evenly
+            const maxOffset = nodeRadius - 5; // Keep 5px safety margin from edge
+            
+            // Calculate normalized position from -1 to 1
+            const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+            
+            // Scale to actual offset
+            offset = Math.round(normalizedPosition * maxOffset);
+          } else {
+            // Too many edges to fit with minimum spacing
+            // We'll distribute them within the node boundaries at minimum spacing
+            
+            // Calculate total width needed for all edges with minimum spacing
+            const totalWidth = totalEdges * minSpaceBetweenEdges;
+            
+            // Calculate the distance from center to edge position
+            // Centers all edges within node regardless of count
+            const startPosition = -nodeRadius + (nodeSize - totalWidth) / 2 + minSpaceBetweenEdges/2;
+            offset = Math.round(startPosition + edgeIndex * minSpaceBetweenEdges);
+          }
           
           return `0 ${offset}px`;
         },
@@ -782,17 +833,42 @@ export default function CytoscapeGraph() {
           const edgeIndex = allEdgesBetween.indexOf(ele);
           const totalEdges = allEdgesBetween.length;
           
-          // Calculate the fan-out offset based on node size and number of edges
+          // Calculate offset based on node diameter and number of edges
           const nodeSize = 40; // Base node size in pixels
-          const maxOffset = nodeSize / 2; // Maximum offset shouldn't exceed node radius
+          const nodeRadius = nodeSize / 2;
           
-          // Calculate normalized position: ranges from -1 to 1 (center = 0)
-          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          // Calculate maximum edges that can fit within node boundaries
+          // We need minimum 6px space between edges for visibility
+          const minSpaceBetweenEdges = 6;
+          const maxPossibleEdges = Math.floor(nodeSize / minSpaceBetweenEdges);
           
-          // Scale normalized position to actual pixel offset, accounting for node size
-          const yOffset = Math.round(normalizedPosition * maxOffset);
+          // If we have more edges than can fit with minimum spacing,
+          // we need to adjust our distribution to stay within node boundaries
+          let offset;
           
-          return `0 ${yOffset}px`;
+          if (totalEdges <= maxPossibleEdges) {
+            // We have enough space to distribute edges evenly
+            const maxOffset = nodeRadius - 5; // Keep 5px safety margin from edge
+            
+            // Calculate normalized position from -1 to 1
+            const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+            
+            // Scale to actual offset
+            offset = Math.round(normalizedPosition * maxOffset);
+          } else {
+            // Too many edges to fit with minimum spacing
+            // We'll distribute them within the node boundaries at minimum spacing
+            
+            // Calculate total width needed for all edges with minimum spacing
+            const totalWidth = totalEdges * minSpaceBetweenEdges;
+            
+            // Calculate the distance from center to edge position
+            // Centers all edges within node regardless of count
+            const startPosition = -nodeRadius + (nodeSize - totalWidth) / 2 + minSpaceBetweenEdges/2;
+            offset = Math.round(startPosition + edgeIndex * minSpaceBetweenEdges);
+          }
+          
+          return `0 ${offset}px`;
         },
         'target-endpoint': function(ele: any) {
           const cy = ele.cy();
@@ -809,17 +885,42 @@ export default function CytoscapeGraph() {
           const edgeIndex = allEdgesBetween.indexOf(ele);
           const totalEdges = allEdgesBetween.length;
           
-          // Calculate the fan-out offset based on node size and number of edges
+          // Calculate offset based on node diameter and number of edges
           const nodeSize = 40; // Base node size in pixels
-          const maxOffset = nodeSize / 2; // Maximum offset shouldn't exceed node radius
+          const nodeRadius = nodeSize / 2;
           
-          // Calculate normalized position: ranges from -1 to 1 (center = 0)
-          const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+          // Calculate maximum edges that can fit within node boundaries
+          // We need minimum 6px space between edges for visibility
+          const minSpaceBetweenEdges = 6;
+          const maxPossibleEdges = Math.floor(nodeSize / minSpaceBetweenEdges);
           
-          // Scale normalized position to actual pixel offset, accounting for node size
-          const yOffset = Math.round(normalizedPosition * maxOffset);
+          // If we have more edges than can fit with minimum spacing,
+          // we need to adjust our distribution to stay within node boundaries
+          let offset;
           
-          return `0 ${yOffset}px`;
+          if (totalEdges <= maxPossibleEdges) {
+            // We have enough space to distribute edges evenly
+            const maxOffset = nodeRadius - 5; // Keep 5px safety margin from edge
+            
+            // Calculate normalized position from -1 to 1
+            const normalizedPosition = (edgeIndex / (totalEdges - 1) * 2) - 1;
+            
+            // Scale to actual offset
+            offset = Math.round(normalizedPosition * maxOffset);
+          } else {
+            // Too many edges to fit with minimum spacing
+            // We'll distribute them within the node boundaries at minimum spacing
+            
+            // Calculate total width needed for all edges with minimum spacing
+            const totalWidth = totalEdges * minSpaceBetweenEdges;
+            
+            // Calculate the distance from center to edge position
+            // Centers all edges within node regardless of count
+            const startPosition = -nodeRadius + (nodeSize - totalWidth) / 2 + minSpaceBetweenEdges/2;
+            offset = Math.round(startPosition + edgeIndex * minSpaceBetweenEdges);
+          }
+          
+          return `0 ${offset}px`;
         }
       }
     },
