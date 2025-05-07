@@ -673,48 +673,54 @@ export default function CytoscapeGraph() {
       },
     },
     
-    // Using overlays for nodes with text
+    // Simpler approach for top text directly on node
+    {
+      selector: 'node[topText]',
+      style: {
+        'label': function(ele: any) {
+          // Create a multi-line label with top text, main label, and bottom text
+          const topText = ele.data('topText');
+          const label = ele.data('label');
+          const bottomText = ele.data('bottomText');
+          
+          // Only return topText if it exists
+          if (topText && topText.length > 0) {
+            return topText;
+          }
+          return '';
+        },
+        'text-valign': 'top',
+        'text-margin-y': -30, // Position above node
+        'text-halign': 'center',
+        'color': '#1A202C',
+        'font-size': '12px',
+        'text-background-opacity': 0.7,
+        'text-background-color': '#EDF2F7'
+      }
+    },
+    
+    // Main node label - center position
     {
       selector: 'node',
       style: {
-        'overlay-opacity': 0, // Invisible overlay
-        'overlay-padding': 20, // Add some padding to make space for text
+        'text-valign': 'center',
+        'text-halign': 'center',
       }
     },
     
-    // Using manual edges for top/bottom text
+    // Style for bottom text using different approach - separate style for the content
     {
-      selector: '.top-text-edge',
+      selector: 'node[bottomText]',
       style: {
-        'width': 0, // Invisible edge
-        'curve-style': 'straight',
-        'label': 'data(label)',
-        'text-rotation': 'autorotate',
-        'text-margin-y': -10,
-        'text-valign': 'top',
-        'text-halign': 'center',
-        'color': '#1A202C',
-        'font-size': '12px',
-        'text-background-opacity': 0.7,
-        'text-background-color': '#EDF2F7'
-      }
-    },
-    
-    // Bottom text with similar approach
-    {
-      selector: '.bottom-text-edge',
-      style: {
-        'width': 0, // Invisible edge
-        'curve-style': 'straight',
-        'label': 'data(label)',
-        'text-rotation': 'autorotate',
-        'text-margin-y': 10,
-        'text-valign': 'bottom',
-        'text-halign': 'center',
-        'color': '#1A202C',
-        'font-size': '12px',
-        'text-background-opacity': 0.7,
-        'text-background-color': '#EDF2F7'
+        'background-color': function(ele: any) {
+          // Only mark nodes with non-empty bottom text
+          const bottomText = ele.data('bottomText');
+          if (bottomText && bottomText.length > 0) {
+            ele.scratch('_hasBottomText', true);  // Safer to use scratch than data
+          }
+          // Return unchanged background color
+          return ele.style('background-color');
+        }
       }
     },
     // Basic edge style

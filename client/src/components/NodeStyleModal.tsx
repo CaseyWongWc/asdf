@@ -113,44 +113,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       node.data('label', nodeLabel.trim());
     }
     
-    // Store the text values in node data
+    // Just store the text values directly in node data
+    // The styling will take care of rendering them
     node.data('topText', topText.trim());
     node.data('bottomText', bottomText.trim());
-    
-    // Get node position and ID for creating text edges
-    const nodeId = node.id();
-    
-    // Remove existing text edges
-    window.cy.elements(`.top-text-edge[source="${nodeId}"]`).remove();
-    window.cy.elements(`.bottom-text-edge[source="${nodeId}"]`).remove();
-    
-    // Create top text edge if needed
-    if (topText.trim()) {
-      window.cy.add({
-        group: 'edges',
-        data: {
-          id: `top-text-${nodeId}`,
-          source: nodeId,
-          target: nodeId,
-          label: topText.trim()
-        },
-        classes: 'top-text-edge'
-      });
-    }
-    
-    // Create bottom text edge if needed
-    if (bottomText.trim()) {
-      window.cy.add({
-        group: 'edges',
-        data: {
-          id: `bottom-text-${nodeId}`,
-          source: nodeId,
-          target: nodeId, 
-          label: bottomText.trim()
-        },
-        classes: 'bottom-text-edge'
-      });
-    }
 
     setStatusMessage(`Node styling updated`);
     onOpenChange(false);
@@ -159,11 +125,11 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   const resetStyles = () => {
     if (!nodeId || !window.cy) return;
     
-    const node = window.cy.getElementById(nodeId);
-    if (!node) return;
+    const targetNode = window.cy.getElementById(nodeId);
+    if (!targetNode) return;
     
     // Reset to default styles
-    node.style({
+    targetNode.style({
       'background-color': '#4299E1',
       'shape': 'ellipse',
       'width': '40px',
@@ -175,16 +141,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       'text-outline-color': '#4299E1'
     });
     
-    // Get the node ID
-    const nodeId = node.id();
-    
-    // Remove existing text edges
-    window.cy.elements(`.top-text-edge[source="${nodeId}"]`).remove();
-    window.cy.elements(`.bottom-text-edge[source="${nodeId}"]`).remove();
-    
-    // Reset node text data
-    node.data('topText', '');
-    node.data('bottomText', '');
+    // Reset node text data - this will remove top and bottom text
+    targetNode.data('topText', '');
+    targetNode.data('bottomText', '');
+    targetNode.data('hasBottomText', false); // Clear flag
     
     // Update local state
     setNodeColor('#4299E1');
@@ -200,15 +160,15 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   };
   
   const deleteNode = () => {
-    if (!nodeId || !window.cy) return;
+    if (!selectedNodeId || !window.cy) return;
     
-    const node = window.cy.getElementById(nodeId);
-    if (!node) return;
+    const targetNode = window.cy.getElementById(selectedNodeId);
+    if (!targetNode) return;
     
-    const nodeLabel = node.data('label');
+    const nodeLabel = targetNode.data('label');
     
     // Remove the node and its connected edges
-    node.remove();
+    targetNode.remove();
     
     // Update counts
     if (window.cy) {
