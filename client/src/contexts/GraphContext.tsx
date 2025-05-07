@@ -36,6 +36,7 @@ export interface GraphContextProps {
   mode: GraphMode;
   setMode: (mode: GraphMode) => void;
   checkForModeSwitch: (title: string) => void;
+  checkParity: () => boolean;
 }
 
 export const GraphContext = createContext<GraphContextProps>({
@@ -65,6 +66,7 @@ export const GraphContext = createContext<GraphContextProps>({
   mode: 'editor',
   setMode: () => {},
   checkForModeSwitch: () => {},
+  checkParity: () => false,
 });
 
 interface GraphProviderProps {
@@ -190,6 +192,63 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
     }
   };
 
+  // Check if all nodes in the graph have an even number of edges
+  const checkParity = (): boolean => {
+    if (!window.cy) {
+      setStatusMessage('Graph not initialized');
+      return false;
+    }
+
+    const cy = window.cy;
+    
+    // Map to store the degree (number of edges) for each node
+    const nodeDegrees: Record<string, number> = {};
+    
+    // Initialize all nodes with 0 edges
+    cy.nodes().forEach((node: any) => {
+      nodeDegrees[node.id()] = 0;
+    });
+    
+    // Count edges for each node
+    cy.edges().forEach((edge: any) => {
+      const sourceId = edge.data('source');
+      const targetId = edge.data('target');
+      
+      // Increment edge count for source node
+      nodeDegrees[sourceId] = (nodeDegrees[sourceId] || 0) + 1;
+      
+      // If it's not a self-loop, increment target node too
+      if (sourceId !== targetId) {
+        nodeDegrees[targetId] = (nodeDegrees[targetId] || 0) + 1;
+      }
+    });
+    
+    // Check if all nodes have an even number of edges (even parity)
+    let allEven = true;
+    let oddNodes: string[] = [];
+    
+    Object.entries(nodeDegrees).forEach(([nodeId, degree]) => {
+      if (degree % 2 !== 0) {
+        allEven = false;
+        oddNodes.push(nodeId);
+      }
+    });
+    
+    if (allEven) {
+      setStatusMessage('✓ All nodes have even parity (even number of edges)');
+    } else {
+      // Get node labels for better reporting
+      const oddNodeLabels = oddNodes.map(id => {
+        const node = cy.getElementById(id);
+        return node ? node.data('label') : id;
+      });
+      
+      setStatusMessage(`Odd parity: ${oddNodeLabels.join(', ')} have an odd number of edges`);
+    }
+    
+    return allEven;
+  };
+
   // Use the effect hook to check for title changes
   useEffect(() => {
     checkForModeSwitch(title);
@@ -224,6 +283,7 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
         mode,
         setMode,
         checkForModeSwitch,
+        checkParity,
       }}
     >
       {children}

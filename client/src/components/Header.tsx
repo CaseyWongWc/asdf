@@ -2,7 +2,7 @@ import { useContext } from "react";
 import { GraphContext } from "@/contexts/GraphContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, HelpCircle, RotateCcw, Smartphone, Laptop } from "lucide-react";
+import { Pencil, HelpCircle, RotateCcw, Smartphone, Laptop, CheckCircle } from "lucide-react";
 import { useIsMobile, useMobileContext } from "@/hooks/use-mobile";
 
 export default function Header() {
@@ -12,7 +12,8 @@ export default function Header() {
     resetGraph, 
     showHelp, 
     setShowHelp,
-    mode
+    mode,
+    checkParity
   } = useContext(GraphContext);
   const isMobile = useIsMobile();
   const { toggleMode, isAutoDetect, setAutoDetect } = useMobileContext();
@@ -64,6 +65,16 @@ export default function Header() {
           >
             <HelpCircle className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1.5`} />
             Help
+          </Button>
+          {/* Parity Check Button */}
+          <Button 
+            variant="outline" 
+            size={isMobile ? "default" : "sm"}
+            className={isMobile ? "flex-1 mr-2" : "h-9"}
+            onClick={checkParity}
+          >
+            <CheckCircle className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1.5`} />
+            Check Parity
           </Button>
           <Button 
             variant="outline" 
