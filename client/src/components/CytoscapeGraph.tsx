@@ -100,6 +100,12 @@ export default function CytoscapeGraph() {
   const [edgeStyle, setEdgeStyle] = useState<"solid" | "dashed" | "dotted">(
     "solid",
   );
+  
+  // JSON import/export state
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportData, setExportData] = useState("");
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importData, setImportData] = useState("");
   const [edgeCurve, setEdgeCurve] = useState<"straight" | "bezier">("bezier");
   const [edgeCurvature, setEdgeCurvature] = useState<number>(40); // Control point step size
   const [edgeColor, setEdgeColor] = useState<string>("#64748B"); // Default gray color
@@ -1318,55 +1324,110 @@ export default function CytoscapeGraph() {
             </Button>
           )}
           
-          {/* Export JSON Button */}
+          {/* JSON Import/Export Buttons */}
           <div className={`${isMobile ? 'w-full pt-2 mt-2 border-t' : 'ml-3 pl-3 border-l'} border-gray-300`}>
-            <Button
-              size={isMobile ? "default" : "sm"}
-              variant="outline"
-              className={isMobile ? 'w-full justify-center' : ''}
-              onClick={() => {
-                if (cyRef.current) {
-                  // Create a simplified export with just the essential data
-                  const nodes = cyRef.current.nodes().map((node: any) => ({
-                    id: node.id(),
-                    label: node.data('label'),
-                    topText: node.data('topText') || '',
-                    bottomText: node.data('bottomText') || '',
-                    position: node.position(),
-                  }));
-                  
-                  const edges = cyRef.current.edges().map((edge: any) => ({
-                    id: edge.id(),
-                    source: edge.data('source'),
-                    target: edge.data('target'),
-                    label: edge.data('label') || '',
-                    weight: edge.data('weight') || null,
-                    description: edge.data('description') || '',
-                    isDirected: edge.data('targetArrow') === 'triangle',
-                  }));
-                  
-                  const graphData = {
-                    nodes,
-                    edges
-                  };
-                  
-                  // Convert to JSON and create download link
-                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(graphData, null, 2));
-                  
-                  // Create download element
-                  const downloadAnchorNode = document.createElement('a');
-                  downloadAnchorNode.setAttribute("href", dataStr);
-                  downloadAnchorNode.setAttribute("download", "graph_export.json");
-                  document.body.appendChild(downloadAnchorNode); // required for firefox
-                  downloadAnchorNode.click();
-                  downloadAnchorNode.remove();
-                  
-                  setStatusMessage("Graph exported to JSON file");
-                }
-              }}
-            >
-              <FileText className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> Export JSON
-            </Button>
+            <div className={`${isMobile ? 'flex flex-col gap-2' : 'flex gap-2'}`}>
+              <Button
+                size={isMobile ? "default" : "sm"}
+                variant="outline"
+                className={isMobile ? 'w-full justify-center' : ''}
+                onClick={() => {
+                  if (cyRef.current) {
+                    // Create a comprehensive export with all styling data
+                    const nodes = cyRef.current.nodes().map((node: any) => {
+                      // Get all data attributes
+                      const data = {...node.data()};
+                      
+                      // Get position
+                      const position = node.position();
+                      
+                      // Get computed styles
+                      const style = {
+                        backgroundColor: node.style('background-color'),
+                        borderColor: node.style('border-color'),
+                        borderWidth: node.style('border-width'),
+                        fontColor: node.style('color'),
+                        fontSize: node.style('font-size'),
+                        height: node.style('height'),
+                        width: node.style('width'),
+                      };
+                      
+                      return {
+                        id: node.id(),
+                        data,
+                        position,
+                        style
+                      };
+                    });
+                    
+                    const edges = cyRef.current.edges().map((edge: any) => {
+                      // Get all data attributes
+                      const data = {...edge.data()};
+                      
+                      // Get computed styles
+                      const style = {
+                        lineColor: edge.style('line-color'),
+                        lineStyle: edge.style('line-style'),
+                        curveStyle: edge.style('curve-style'),
+                        targetArrowShape: edge.style('target-arrow-shape'),
+                        targetArrowColor: edge.style('target-arrow-color'),
+                        controlPointDistances: edge.style('control-point-distances'),
+                        controlPointWeights: edge.style('control-point-weights'),
+                        width: edge.style('width'),
+                      };
+                      
+                      return {
+                        id: edge.id(),
+                        data,
+                        style
+                      };
+                    });
+                    
+                    const graphData = {
+                      nodes,
+                      edges,
+                      exportVersion: "1.0",
+                      exportDate: new Date().toISOString()
+                    };
+                    
+                    // Convert to JSON and create download link
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(graphData, null, 2));
+                    
+                    // Create download element
+                    const downloadAnchorNode = document.createElement('a');
+                    downloadAnchorNode.setAttribute("href", dataStr);
+                    downloadAnchorNode.setAttribute("download", "graph_export.json");
+                    document.body.appendChild(downloadAnchorNode); // required for firefox
+                    downloadAnchorNode.click();
+                    downloadAnchorNode.remove();
+                    
+                    // Also show the export modal with copyable JSON
+                    setExportData(JSON.stringify(graphData, null, 2));
+                    setExportModalOpen(true);
+                    
+                    setStatusMessage("Graph exported to JSON file");
+                  }
+                }}
+              >
+                <FileText className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} /> Export JSON
+              </Button>
+              
+              <Button
+                size={isMobile ? "default" : "sm"}
+                variant="outline"
+                className={isMobile ? 'w-full justify-center' : ''}
+                onClick={() => {
+                  setImportModalOpen(true);
+                  setStatusMessage("Import JSON to replace the current graph");
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg> Import JSON
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -1826,6 +1887,179 @@ export default function CytoscapeGraph() {
       
       {/* Style Panel */}
       {mode === "editor" && <StylePanel />}
+      
+      {/* JSON Export Modal */}
+      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
+        <DialogContent className="sm:max-w-[800px] p-0 bg-white rounded-lg overflow-hidden">
+          <DialogHeader className="p-4 md:p-6 border-b">
+            <DialogTitle className="text-xl font-semibold">
+              Export Graph JSON
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 md:p-6 space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-gray-500">
+                Copy this JSON to save your graph. You can import it later using the Import JSON feature.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(exportData);
+                  setStatusMessage("JSON copied to clipboard");
+                }}
+              >
+                <Copy className="h-4 w-4 mr-1" /> Copy to Clipboard
+              </Button>
+            </div>
+            <div className="relative">
+              <textarea 
+                className="w-full h-[400px] p-3 bg-gray-50 border rounded font-mono text-sm overflow-auto"
+                value={exportData}
+                readOnly
+              />
+            </div>
+          </div>
+          <DialogFooter className="p-4 border-t">
+            <Button variant="outline" onClick={() => setExportModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* JSON Import Modal */}
+      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
+        <DialogContent className="sm:max-w-[800px] p-0 bg-white rounded-lg overflow-hidden">
+          <DialogHeader className="p-4 md:p-6 border-b">
+            <DialogTitle className="text-xl font-semibold">
+              Import Graph JSON
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 md:p-6 space-y-4">
+            <p className="text-sm text-gray-500">
+              Paste previously exported JSON here to restore your graph. This will replace the current graph.
+            </p>
+            <div className="relative">
+              <textarea 
+                className="w-full h-[400px] p-3 bg-gray-50 border rounded font-mono text-sm overflow-auto"
+                value={importData}
+                onChange={(e) => setImportData(e.target.value)}
+                placeholder="Paste your JSON here..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="p-4 border-t bg-gray-50">
+            <Button 
+              variant="outline" 
+              onClick={() => setImportModalOpen(false)}
+              className="mr-2"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="default"
+              onClick={() => {
+                try {
+                  if (!importData.trim()) {
+                    setStatusMessage("No JSON data provided");
+                    return;
+                  }
+                  
+                  const graphData = JSON.parse(importData);
+                  
+                  if (!graphData.nodes || !graphData.edges) {
+                    setStatusMessage("Invalid JSON format: missing nodes or edges");
+                    return;
+                  }
+                  
+                  if (cyRef.current) {
+                    const cy = cyRef.current;
+                    
+                    // Clear existing graph
+                    cy.elements().remove();
+                    
+                    // Import nodes first
+                    graphData.nodes.forEach((node: any) => {
+                      cy.add({
+                        group: 'nodes',
+                        data: node.data,
+                        position: node.position
+                      });
+                      
+                      // Apply styles if available
+                      if (node.style) {
+                        const nodeElement = cy.getElementById(node.id);
+                        if (nodeElement) {
+                          nodeElement.style({
+                            'background-color': node.style.backgroundColor || '#4299E1',
+                            'border-color': node.style.borderColor || '#2B6CB0',
+                            'border-width': node.style.borderWidth || '2px',
+                            'color': node.style.fontColor || 'white',
+                            'font-size': node.style.fontSize || '12px',
+                            'height': node.style.height || '40px',
+                            'width': node.style.width || '40px'
+                          });
+                        }
+                      }
+                    });
+                    
+                    // Then import edges
+                    graphData.edges.forEach((edge: any) => {
+                      cy.add({
+                        group: 'edges',
+                        data: edge.data
+                      });
+                      
+                      // Apply styles if available
+                      if (edge.style) {
+                        const edgeElement = cy.getElementById(edge.id);
+                        if (edgeElement) {
+                          edgeElement.style({
+                            'line-color': edge.style.lineColor || '#64748B',
+                            'line-style': edge.style.lineStyle || 'solid',
+                            'curve-style': edge.style.curveStyle || 'straight',
+                            'target-arrow-shape': edge.style.targetArrowShape || 'none',
+                            'target-arrow-color': edge.style.targetArrowColor || '#64748B',
+                            'width': edge.style.width || '2'
+                          });
+                          
+                          // Handle bezier curve control points if they exist
+                          if (edge.style.controlPointDistances) {
+                            edgeElement.style({
+                              'control-point-distances': edge.style.controlPointDistances,
+                              'control-point-weights': edge.style.controlPointWeights || 0.5
+                            });
+                          }
+                        }
+                      }
+                    });
+                    
+                    // Update counts
+                    setNodeCount(cy.nodes().length);
+                    setEdgeCount(cy.edges().length);
+                    
+                    // Apply Auto Smart styling
+                    applyAutoSmartEdgeStyling();
+                    
+                    // Center and fit the graph
+                    cy.fit(cy.elements(), 50);
+                    
+                    setStatusMessage(`Graph imported successfully with ${cy.nodes().length} nodes and ${cy.edges().length} edges`);
+                    setImportModalOpen(false);
+                    setImportData("");
+                  }
+                } catch (error) {
+                  console.error("Import error:", error);
+                  setStatusMessage(`Error importing graph: ${error instanceof Error ? error.message : String(error)}`);
+                }
+              }}
+            >
+              Import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
