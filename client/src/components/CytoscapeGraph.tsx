@@ -3,6 +3,7 @@ import { GraphContext } from '../contexts/GraphContext';
 import CytoscapeComponent from 'react-cytoscapejs';
 import { useIsMobile } from '../hooks/use-mobile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
 
 export default function CytoscapeGraph() {
   const cyRef = useRef<any>(null);
@@ -25,6 +26,8 @@ export default function CytoscapeGraph() {
   const [isDirected, setIsDirected] = useState(false);
   const [hasWeight, setHasWeight] = useState(true);
   const [edgeStyle, setEdgeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
+  const [edgeCurve, setEdgeCurve] = useState<'straight' | 'bezier'>('bezier'); 
+  const [edgeCurvature, setEdgeCurvature] = useState<number>(40); // Control point step size
 
   useEffect(() => {
     if (cyRef.current) {
@@ -124,11 +127,15 @@ export default function CytoscapeGraph() {
                     weight: 1,
                     label: '',  // Initialize with empty label
                     description: '', // Initialize with empty description
-                    descriptionPosition: 'above' // Default position
+                    descriptionPosition: 'above', // Default position
+                    curveStyle: 'bezier', // Default to bezier curves
+                    curvature: 40 // Default curvature
                   }
                 }).style({
                   'target-arrow-shape': 'none',  // No arrow by default (undirected)
-                  'line-style': 'solid' // Default solid line
+                  'line-style': 'solid', // Default solid line
+                  'curve-style': 'bezier',
+                  'control-point-step-size': 40
                 });
                 
                 setEdgeCount(cy.edges().length);
@@ -177,6 +184,11 @@ export default function CytoscapeGraph() {
             // Determine the edge style
             const lineStyle = edge.style('line-style') || 'solid';
             setEdgeStyle(lineStyle as 'solid' | 'dashed' | 'dotted');
+            
+            // Get curve style and curvature
+            const curveStyle = edge.style('curve-style') || 'bezier';
+            setEdgeCurve(curveStyle as 'straight' | 'bezier');
+            setEdgeCurvature(parseInt(edge.style('control-point-step-size') || '40', 10));
             
             setEditEdgeOpen(true);
           }
@@ -237,7 +249,9 @@ export default function CytoscapeGraph() {
         'target-arrow-shape': 'none',
         'target-arrow-color': '#64748B',
         'arrow-scale': 1.5,
-        'curve-style': 'straight',
+        'curve-style': 'bezier', // Changed from 'straight' to 'bezier' for curved edges
+        'control-point-step-size': 40, // Controls curve size for non-loop edges
+        'control-point-weight': 0.5, // Control the curve position
         'label': (ele: any) => {
           // Display based on label and weight availability
           const label = ele.data('label');
@@ -323,9 +337,11 @@ export default function CytoscapeGraph() {
       currentEdge.data('description', edgeDescription);
       currentEdge.data('descriptionPosition', descriptionPosition);
       
-      // Create style object with line style and direction
+      // Create style object with line style, curve, and direction
       const styleObj: any = {
         'line-style': edgeStyle,
+        'curve-style': edgeCurve,
+        'control-point-step-size': edgeCurvature
       };
       
       // Add arrow if the edge is directed
@@ -335,6 +351,10 @@ export default function CytoscapeGraph() {
       } else {
         styleObj['target-arrow-shape'] = 'none';
       }
+      
+      // Save curvature data for persistence
+      currentEdge.data('curveStyle', edgeCurve);
+      currentEdge.data('curvature', edgeCurvature);
       
       // Apply all styles at once
       currentEdge.style(styleObj);
@@ -371,6 +391,8 @@ export default function CytoscapeGraph() {
       const weight = currentEdge.data('weight');
       const description = currentEdge.data('description');
       const descPosition = currentEdge.data('descriptionPosition');
+      const curveStyle = currentEdge.data('curveStyle') || edgeCurve;
+      const curvature = currentEdge.data('curvature') || edgeCurvature;
       
       // Store the current styling
       const currentLineStyle = currentEdge.style('line-style');
