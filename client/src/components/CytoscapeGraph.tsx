@@ -27,6 +27,11 @@ export default function CytoscapeGraph() {
     mode,
   } = useContext(GraphContext);
   const isMobile = useIsMobile();
+  
+  // Multi-selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedNodes, setSelectedNodes] = useState<any[]>([]);
+  const [multiEditModalOpen, setMultiEditModalOpen] = useState(false);
 
   // State for edge display style toggle
   const [edgeDisplayStyle, setEdgeDisplayStyle] =
@@ -207,6 +212,23 @@ export default function CytoscapeGraph() {
 
           // Debug - log the click
           console.log(`Node clicked: ${nodeId}, source node: ${sourceNode}`);
+
+          // Handle multi-select mode
+          if (selectionMode) {
+            // In selection mode, clicking toggles selection state
+            if (node.hasClass('selected-node')) {
+              // Deselect the node
+              node.removeClass('selected-node');
+              setSelectedNodes(prev => prev.filter(n => n.id() !== nodeId));
+              setStatusMessage(`Removed "${node.data("label")}" from selection (${selectedNodes.length - 1} selected)`);
+            } else {
+              // Select the node
+              node.addClass('selected-node');
+              setSelectedNodes(prev => [...prev, node]);
+              setStatusMessage(`Added "${node.data("label")}" to selection (${selectedNodes.length + 1} selected)`);
+            }
+            return;
+          }
 
           // Check if this is a double-click on the same node
           if (
@@ -659,29 +681,29 @@ export default function CytoscapeGraph() {
       selector: "node[topText], node[bottomText]",
       style: {
         // Create a multi-line label with all three parts
-        "label": function(ele: any) {
+        label: function (ele: any) {
           const topText = ele.data("topText") || "";
           const mainLabel = ele.data("label") || "";
           const bottomText = ele.data("bottomText") || "";
-          
+
           // Format the text with special markers for styling
           let labelParts = [];
-          
+
           // Add top text if present (with a more subtle indicator)
           if (topText) {
-            labelParts.push(`⌈${topText}⌉`);
+            labelParts.push(`${topText}`); //⌈⌉
           }
-          
+
           // Add main label
           if (mainLabel) {
             labelParts.push(mainLabel);
           }
-          
+
           // Add bottom text if present (with a more subtle indicator)
           if (bottomText) {
-            labelParts.push(`⌊${bottomText}⌋`);
+            labelParts.push(`${bottomText}`); //⌊⌋
           }
-          
+
           return labelParts.join("\n");
         },
         "text-wrap": "wrap",
@@ -690,39 +712,39 @@ export default function CytoscapeGraph() {
         "text-halign": "center",
         "font-family": "Arial, sans-serif",
         "text-margin-y": 0,
-        "color": "#333333", // Default color for all text
-      }
+        color: "#333333", // Default color for all text
+      },
     },
-    
+
     // Special styling for top text to make it distinct
     {
       selector: "node[topText]",
       style: {
         // Apply special color to top text
-        "color": "#3182CE", // Blue color for top text
-      }
+        color: "#3182CE", // Blue color for top text
+      },
     },
-    
+
     // Special styling for bottom text to make it distinct
     {
-      selector: "node[bottomText]", 
+      selector: "node[bottomText]",
       style: {
         // Apply special color to bottom text
-        "color": "#805AD5", // Purple color for bottom text  
-      }
+        color: "#805AD5", // Purple color for bottom text
+      },
     },
-    
+
     // Style for nodes with top text - increase node height to accommodate and style the text
     {
       selector: "node[topText]",
       style: {
         // Increase node dimensions to fit additional text
-        "height": function(ele: any) {
+        height: function (ele: any) {
           // Get the base height and add space for top text
           const baseHeight = parseInt(ele.style("height").replace("px", ""));
           return `${baseHeight + 20}px`;
         },
-        "width": function(ele: any) {
+        width: function (ele: any) {
           // Make node wider to accommodate text
           const baseWidth = parseInt(ele.style("width").replace("px", ""));
           return `${Math.max(baseWidth, 60)}px`;
@@ -734,21 +756,21 @@ export default function CytoscapeGraph() {
         "text-background-opacity": 0, // Fully transparent background
         "text-outline-width": 2,
         "text-outline-color": "white",
-        "text-outline-opacity": 0.9
+        "text-outline-opacity": 0.9,
       },
     },
-    
+
     // Style for nodes with bottom text - increase height and style
     {
       selector: "node[bottomText]",
       style: {
         // Increase node dimensions to fit additional text
-        "height": function(ele: any) {
+        height: function (ele: any) {
           // Get the base height and add space for bottom text
           const baseHeight = parseInt(ele.style("height").replace("px", ""));
           return `${baseHeight + 20}px`;
         },
-        "width": function(ele: any) {
+        width: function (ele: any) {
           // Make node wider to accommodate text
           const baseWidth = parseInt(ele.style("width").replace("px", ""));
           return `${Math.max(baseWidth, 60)}px`;
@@ -759,7 +781,7 @@ export default function CytoscapeGraph() {
         "text-background-opacity": 0, // Fully transparent background
         "text-outline-width": 2,
         "text-outline-color": "white",
-        "text-outline-opacity": 0.9
+        "text-outline-opacity": 0.9,
       },
     },
     // Basic edge style
@@ -923,6 +945,17 @@ export default function CytoscapeGraph() {
         "border-width": "3px",
         "border-color": "#E53E3E",
         "background-color": "#FC8181",
+      },
+    },
+    
+    // Multi-selected node style
+    {
+      selector: ".selected-node",
+      style: {
+        "border-width": "3px",
+        "border-color": "#6B46C1", // Purple border
+        "border-style": "double", // Double line border
+        "background-opacity": 0.9,
       },
     },
     // Self-loop edge style - This implements JFLAP-like self-loops
@@ -1090,6 +1123,49 @@ export default function CytoscapeGraph() {
         layout={{ name: "preset" }} // Use preset layout to respect node positions
       />
 
+      {/* Selection Mode Toggle */}
+      {mode === "editor" && (
+        <div className="absolute top-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex items-center gap-2 border border-gray-200">
+          <span className="text-sm font-medium whitespace-nowrap">
+            Multi-Select:
+          </span>
+          <div className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox" 
+              checked={selectionMode}
+              onChange={(e) => {
+                setSelectionMode(e.target.checked);
+                setStatusMessage(e.target.checked ? 'Multi-select mode enabled' : 'Multi-select mode disabled');
+                
+                // Clear selection when disabling selection mode
+                if (!e.target.checked && cyRef.current) {
+                  selectedNodes.forEach(node => {
+                    node.removeClass('selected-node');
+                  });
+                  setSelectedNodes([]);
+                }
+              }}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 
+                rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white 
+                after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white 
+                after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 
+                after:transition-all peer-checked:bg-purple-600"></div>
+          </div>
+          {selectedNodes.length > 0 && (
+            <Button 
+              size="sm" 
+              variant="default"
+              className="ml-2 bg-purple-600 hover:bg-purple-700"
+              onClick={() => setMultiEditModalOpen(true)}
+            >
+              Edit {selectedNodes.length} selected
+            </Button>
+          )}
+        </div>
+      )}
+      
       {/* Edge Style Toggle Control */}
       {mode === "editor" && (
         <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex flex-col items-start gap-2 border border-gray-200">
@@ -1463,6 +1539,92 @@ export default function CytoscapeGraph() {
         onOpenChange={setNodeStyleOpen}
         nodeId={selectedNodeId}
       />
+
+      {/* Multi-Edit Modal */}
+      <Dialog open={multiEditModalOpen} onOpenChange={setMultiEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px] p-0 bg-white rounded-lg overflow-hidden">
+          <DialogHeader className="p-4 md:p-6 border-b">
+            <DialogTitle className="text-xl font-semibold">
+              Batch Edit {selectedNodes.length} Nodes
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="p-4 md:p-6 space-y-4">
+            {/* Multi-edit form */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-base font-medium">Node Label Prefix</label>
+                <input
+                  type="text"
+                  placeholder="e.g., 'State' - will become State 1, State 2, etc."
+                  className="w-full px-3 py-2 border rounded-md"
+                  onChange={(e) => {
+                    // Store prefix for application on submit
+                    window._tempLabelPrefix = e.target.value;
+                  }}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-base font-medium">Node Background Color</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {["#4299E1", "#9F7AEA", "#48BB78", "#F56565", "#ED8936", "#ECC94B", "#A0AEC0", "#38B2AC"].map((color) => (
+                    <button
+                      key={color}
+                      className="w-10 h-10 rounded-full border border-gray-300 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      style={{ backgroundColor: color }}
+                      onClick={() => {
+                        // Store color for application on submit
+                        window._tempNodeColor = color;
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setMultiEditModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // Apply batch changes to all selected nodes
+                  if (cyRef.current) {
+                    const prefix = window._tempLabelPrefix;
+                    const color = window._tempNodeColor;
+                    
+                    selectedNodes.forEach((node, index) => {
+                      // Apply label prefix if provided
+                      if (prefix) {
+                        node.data('label', `${prefix} ${index + 1}`);
+                      }
+                      
+                      // Apply color if selected
+                      if (color) {
+                        node.style('background-color', color);
+                      }
+                    });
+                    
+                    // Clean up temp variables
+                    delete window._tempLabelPrefix;
+                    delete window._tempNodeColor;
+                    
+                    // Close dialog
+                    setMultiEditModalOpen(false);
+                    setStatusMessage(`Updated ${selectedNodes.length} nodes`);
+                  }
+                }}
+              >
+                Apply to All Selected
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
