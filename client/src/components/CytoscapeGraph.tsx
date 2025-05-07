@@ -12,7 +12,8 @@ export default function CytoscapeGraph() {
     setNodeCount, 
     setEdgeCount, 
     sourceNode, 
-    setSourceNode 
+    setSourceNode,
+    mode 
   } = useContext(GraphContext);
   const isMobile = useIsMobile();
   
@@ -29,6 +30,7 @@ export default function CytoscapeGraph() {
   const [edgeCurve, setEdgeCurve] = useState<'straight' | 'bezier'>('bezier'); 
   const [edgeCurvature, setEdgeCurvature] = useState<number>(40); // Control point step size
 
+  // Setup Cytoscape instance and register the appropriate event handlers based on mode
   useEffect(() => {
     if (cyRef.current) {
       // Store reference to the Cytoscape instance
@@ -64,9 +66,9 @@ export default function CytoscapeGraph() {
         // Update node count in context
         setNodeCount(cy.nodes().length);
 
-        // Background click event for adding new nodes
+        // Background click event for adding new nodes (only in editor mode)
         cy.on('tap', function(event: any) {
-          // Only handle clicks on the background (not on nodes/edges)
+          // Only handle clicks on the background (not on nodes/edges) and only in editor mode
           if (event.target === cy) {
             console.log('Background tap in Cytoscape detected', event.position);
             
@@ -78,21 +80,26 @@ export default function CytoscapeGraph() {
               return;
             }
             
-            // Get the position where the user clicked
-            const pos = event.position;
-            
-            // Create a new node
-            const nodeId = `n${Date.now()}`;
-            const nodeLabel = `Node ${cy.nodes().length + 1}`;
-            
-            cy.add({
-              group: 'nodes',
-              data: { id: nodeId, label: nodeLabel },
-              position: { x: pos.x, y: pos.y }
-            });
-            
-            setNodeCount(cy.nodes().length);
-            setStatusMessage(`Created ${nodeLabel}`);
+            // Only create new nodes in editor mode
+            if (mode === 'editor') {
+              // Get the position where the user clicked
+              const pos = event.position;
+              
+              // Create a new node
+              const nodeId = `n${Date.now()}`;
+              const nodeLabel = `Node ${cy.nodes().length + 1}`;
+              
+              cy.add({
+                group: 'nodes',
+                data: { id: nodeId, label: nodeLabel },
+                position: { x: pos.x, y: pos.y }
+              });
+              
+              setNodeCount(cy.nodes().length);
+              setStatusMessage(`Created ${nodeLabel}`);
+            } else {
+              setStatusMessage('Node creation disabled in algorithm mode');
+            }
           }
         });
         

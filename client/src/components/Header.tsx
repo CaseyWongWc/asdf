@@ -11,7 +11,8 @@ export default function Header() {
     setTitle, 
     resetGraph, 
     showHelp, 
-    setShowHelp 
+    setShowHelp,
+    mode
   } = useContext(GraphContext);
   const isMobile = useIsMobile();
   const { toggleMode, isAutoDetect, setAutoDetect } = useMobileContext();
@@ -38,14 +39,21 @@ export default function Header() {
             <Input
               value={title}
               onChange={handleTitleChange}
-              className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold border-none focus:ring-0 focus-visible:ring-0 p-0 focus-visible:ring-offset-0 h-auto`}
+              readOnly={mode === 'algorithm'}
+              className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold border-none focus:ring-0 focus-visible:ring-0 p-0 focus-visible:ring-offset-0 h-auto ${mode === 'algorithm' ? 'bg-transparent cursor-default text-blue-600' : ''}`}
               placeholder="Enter graph title..."
             />
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-gray-600">
-              <Pencil className="h-3 w-3" />
-            </Button>
+            {mode === 'editor' && (
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-gray-600">
+                <Pencil className="h-3 w-3" />
+              </Button>
+            )}
           </div>
-          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'} mt-1`}>Enter "THIS IS NOT A DRILL" in title to complete</p>
+          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'} mt-1`}>
+            {mode === 'editor' 
+              ? 'Enter "THIS IS NOT A DRILL" in title to complete' 
+              : 'Algorithm visualization mode activated'}
+          </p>
         </div>
         <div className={`flex items-center ${isMobile ? 'w-full justify-between mt-2' : 'space-x-2'}`}>
           <Button 
