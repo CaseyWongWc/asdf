@@ -86,20 +86,13 @@ export default function CytoscapeGraph() {
         for (let i = 0; i < 3; i++) {
           const timestamp = Date.now() + i; // Add index to ensure uniqueness
           
-          // Create example node with top and bottom text for the first node
-          let nodeData = i === 0 ? 
-            { 
-              id: `n${timestamp}`, 
-              label: 'NODE1',
-              topText: 'im a barbe girl',
-              bottomText: 'in a barbie world'
-            } : 
-            { 
-              id: `n${timestamp}`, 
-              label: `Node ${i+1}`,
-              topText: '',
-              bottomText: ''
-            };
+          // Create example nodes to match the reference image
+          let nodeData = { 
+            id: `n${timestamp}`, 
+            label: i === 0 ? 'NODE1' : `Node ${i+1}`,
+            topText: '',
+            bottomText: ''
+          };
           
           const node = {
             group: "nodes",
@@ -623,48 +616,43 @@ export default function CytoscapeGraph() {
     {
       selector: "node",
       style: {
+        // Simple blue circle for the node
         "background-color": "#4299E1",
-        label: "data(label)",
-        "text-valign": "center",
-        "text-halign": "center",
-        color: "white",
-        "font-size": isMobile ? "14px" : "12px",
-        width: isMobile ? "50px" : "40px",
-        height: isMobile ? "50px" : "40px",
-        "text-outline-width": "1px",
-        "text-outline-color": "#4299E1",
+        "width": isMobile ? "50px" : "40px",
+        "height": isMobile ? "50px" : "40px",
+        "border-width": "0",
+        "shape": "ellipse",
       },
     },
-    // Main node label (always visible, regardless of top/bottom text)
+    // Add a separate style for the node label with the horizontal band
     {
       selector: "node",
       style: {
         "label": "data(label)",
         "text-valign": "center",
         "text-halign": "center",
-        "text-margin-y": 0,
+        "color": "white",
         "font-weight": "bold",
-        "font-size": isMobile ? "16px" : "14px",
-        "text-outline-width": 2,
-        "text-outline-color": function(ele: any) {
-          return ele.style("background-color");
-        },
-        "color": function(ele: any) {
-          return ele.style("color") || "#FFFFFF";
-        },
-        "text-background-opacity": 0,
-      }
+        "font-size": isMobile ? "14px" : "12px",
+        // Create a horizontal band across the middle of the node
+        "text-background-color": "#3182CE", // Slightly darker blue for the band
+        "text-background-opacity": 1,
+        "text-background-shape": "rectangle",
+        "text-background-padding": 2,
+        "text-background-width": "100%",
+        // Position the band in the middle of the node
+        "text-margin-y": 0,
+      },
     },
     
-    // Style for nodes with top text
+    // Style for nodes with top text - use a valid selector
     {
-      selector: "node[topText][^topText='']",
+      selector: "node[topText]",
       style: {
         // We use source-label to position text above the node
         "source-label": "data(topText)",
         "source-text-offset": 0,
         "source-text-margin-y": -35,
-        "source-text-opacity": 1,
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
         "text-background-shape": "roundrectangle",
@@ -676,15 +664,14 @@ export default function CytoscapeGraph() {
       }
     },
     
-    // Style for nodes with bottom text
+    // Style for nodes with bottom text - use a valid selector
     {
-      selector: "node[bottomText][^bottomText='']",
+      selector: "node[bottomText]",
       style: {
         // We use target-label to position text below the node
         "target-label": "data(bottomText)",
         "target-text-offset": 0,
         "target-text-margin-y": 35,
-        "target-text-opacity": 1,
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
         "text-background-shape": "roundrectangle",
