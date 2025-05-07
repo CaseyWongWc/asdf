@@ -240,83 +240,70 @@ export default function CytoscapeGraph() {
         'text-outline-color': '#4299E1'
       }
     },
+    // Basic edge style
     {
       selector: 'edge',
       style: {
         'width': isMobile ? 3 : 2,
         'line-color': '#64748B',
-        // Remove arrow for undirected graph by default
         'target-arrow-shape': 'none',
         'target-arrow-color': '#64748B',
         'arrow-scale': 1.5,
-        'curve-style': 'bezier', // Changed from 'straight' to 'bezier' for curved edges
-        'control-point-step-size': 40, // Controls curve size for non-loop edges
-        'control-point-weight': 0.5, // Control the curve position
+        'curve-style': 'bezier',
+        'control-point-step-size': 40,
+        'control-point-weight': 0.5
+      }
+    },
+    // Edge label style
+    {
+      selector: 'edge',
+      style: {
+        'font-size': isMobile ? '14px' : '12px',
+        'color': '#1a202c',
+        'text-rotation': 'none',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'text-outline-width': '1px',
+        'text-outline-color': 'white',
+        'text-background-opacity': 0.7,
+        'text-background-color': '#ffffff',
+        'text-background-padding': 2
+      }
+    },
+    // Edge with weight and label style
+    {
+      selector: 'edge[weight][!description]',
+      style: {
         'label': (ele: any) => {
-          // Display based on label and weight availability
           const label = ele.data('label');
           const weight = ele.data('weight');
           
-          // If the edge has no weight (weightless)
-          if (weight === null || weight === undefined) {
-            return label && label.length > 0 ? label : '';
-          }
-          
-          // If the edge has both label and weight
           if (label && label.length > 0) {
             return `${label} (${weight})`;
           }
           
-          // If the edge has only weight
-          return weight;
-        },
-        'font-size': isMobile ? '14px' : '12px',
-        'text-outline-width': '0px',
-        'text-background-opacity': 0,
-        'text-rotation': 'none',
-        'text-valign': 'center',
-        'text-halign': 'center',
-        'color': '#1a202c', // Darker text color
-        'source-text-offset': (ele: any) => {
-          // Only apply if description exists and is set to position 'above'
-          const desc = ele.data('description');
-          const pos = ele.data('descriptionPosition');
-          if (desc && desc.length > 0 && pos === 'above') {
-            return 15;
-          }
-          return 0;
-        },
-        'source-text-margin-y': -5, // Small offset to ensure clean spacing
-        'source-label': (ele: any) => {
-          // If description exists and is set to position 'above', show it
-          const desc = ele.data('description');
-          const pos = ele.data('descriptionPosition');
-          if (desc && desc.length > 0 && pos === 'above') {
-            return desc;
-          }
-          return '';
-        },
-        'target-text-offset': (ele: any) => {
-          // Only apply if description exists and is set to position 'below'
-          const desc = ele.data('description');
-          const pos = ele.data('descriptionPosition');
-          if (desc && desc.length > 0 && pos === 'below') {
-            return 15;
-          }
-          return 0;
-        },
-        'target-text-margin-y': 5, // Small offset to ensure clean spacing
-        'target-label': (ele: any) => {
-          // If description exists and is set to position 'below', show it
-          const desc = ele.data('description');
-          const pos = ele.data('descriptionPosition');
-          if (desc && desc.length > 0 && pos === 'below') {
-            return desc;
-          }
-          return '';
+          return weight.toString();
         }
       }
     },
+    // Edge with label but no weight style
+    {
+      selector: 'edge[!weight][label]',
+      style: {
+        'label': 'data(label)'
+      }
+    },
+    // Edge with description style
+    {
+      selector: 'edge[description]',
+      style: {
+        'label': 'data(description)',
+        'text-margin-y': (ele: any) => {
+          return ele.data('descriptionPosition') === 'above' ? -15 : 15;
+        }
+      }
+    },
+    // Source node style
     {
       selector: '.source-node',
       style: {
