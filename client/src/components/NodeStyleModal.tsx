@@ -54,6 +54,7 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   const [textColor, setTextColor] = useState('#FFFFFF');
   
   // Node text fields
+  const [nodeLabel, setNodeLabel] = useState('');
   const [topText, setTopText] = useState('');
   const [bottomText, setBottomText] = useState('');
   
@@ -77,6 +78,7 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
         setTextColor(node.style('color') || '#FFFFFF');
         
         // Get text fields
+        setNodeLabel(node.data('label') || '');
         setTopText(node.data('topText') || '');
         setBottomText(node.data('bottomText') || '');
       }
@@ -106,7 +108,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       'color': textColor,
     });
     
-    // Update node data with top and bottom text
+    // Update node data with label, top text and bottom text
+    if (nodeLabel.trim()) {
+      node.data('label', nodeLabel.trim());
+    }
     node.data('topText', topText.trim());
     node.data('bottomText', bottomText.trim());
 
@@ -361,6 +366,20 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
           {/* Node text customization section */}
           <div className="border-t pt-4 mt-4">
             <h3 className="text-base font-medium mb-4">Node Text Customization</h3>
+            
+            {/* Node Label (main text) */}
+            <div className="space-y-2 mb-4">
+              <Label htmlFor="node-label" className="text-sm font-medium">
+                <span className="font-bold">Main Label</span> (center)
+              </Label>
+              <Input
+                id="node-label"
+                value={nodeLabel}
+                onChange={(e) => setNodeLabel(e.target.value)}
+                placeholder="Main node label/name"
+                className="w-full font-medium"
+              />
+            </div>
             
             {/* Top Text */}
             <div className="space-y-2 mb-4">
