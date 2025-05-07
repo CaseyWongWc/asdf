@@ -331,7 +331,8 @@ export default function CytoscapeGraph() {
     }
   }, [mode, sourceNode, setSourceNode, setNodeCount, setEdgeCount, setStatusMessage, 
       setCurrentEdge, setEdgeWeight, setEdgeLabel, setEdgeDescription, setDescriptionPosition, 
-      setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle, setEdgeCurve, setEdgeCurvature]);
+      setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle, setEdgeCurve, setEdgeCurvature,
+      setNodeStyleOpen, setSelectedNodeId]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -852,6 +853,13 @@ export default function CytoscapeGraph() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Node Style Dialog */}
+      <NodeStyleModal 
+        open={nodeStyleOpen}
+        onOpenChange={setNodeStyleOpen}
+        nodeId={selectedNodeId}
+      />
     </>
   );
 }
