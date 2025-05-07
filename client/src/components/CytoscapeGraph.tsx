@@ -230,18 +230,18 @@ export default function CytoscapeGraph() {
       }
     },
     {
-      // Add a selector for edges that have labels
+      // Add a selector for edges that have labels - center them above the edge weight
       selector: 'edge[label]',
       style: {
-        'source-text-offset': 0,
-        'target-text-offset': 0,
-        'source-label': (ele: any) => {
+        'mid-source-text-offset': '50%',
+        'mid-target-text-offset': '50%',
+        'mid-label': (ele: any) => {
           const label = ele.data('label');
           return label && label.length > 0 ? label : '';
         },
-        'source-text-rotation': 'none',
-        'source-text-margin-y': -15,
-        'source-text-margin-x': 0,
+        'mid-text-rotation': 'none',
+        'mid-text-margin-y': -15,
+        'mid-text-margin-x': 0,
         'font-size': isMobile ? '14px' : '12px',
         'font-weight': 'bold',
         'color': '#3182ce'
