@@ -408,9 +408,9 @@ export default function CytoscapeGraph() {
                     // Mark as a rectangular self-loop for proper styling
                     newEdge.data('isRectangularSelfLoop', true);
                     
-                    // Use segments style for rectangular appearance
+                    // Use segments style for rectangular appearance with more prominent extension
                     styleObj['curve-style'] = 'segments';
-                    styleObj['segment-distances'] = [40, 40, 40]; // Right, up, left distances
+                    styleObj['segment-distances'] = [70, 70, 70]; // Right, up, left distances - increased for visibility
                     styleObj['segment-weights'] = [0.25, 0.5, 0.75]; // Control point positions
                     styleObj['edge-distances'] = 'node-position';
                     styleObj['target-arrow-color'] = '#64748B'; // Default gray
@@ -1050,20 +1050,20 @@ export default function CytoscapeGraph() {
             // For 4 or fewer self-loops, use a simple alternating pattern
             switch (index) {
               case 0: // First loop extends right (east)
-                horizontalExpansion = 70;
-                verticalExpansion = 30;
+                horizontalExpansion = 90; // Extend further horizontally for better visibility
+                verticalExpansion = 50; // Extend further vertically for better visibility
                 break;
               case 1: // Second loop extends up (north)
-                horizontalExpansion = 30;
-                verticalExpansion = 70;
+                horizontalExpansion = 50; // Extend further horizontally for better visibility
+                verticalExpansion = 90; // Extend further vertically for better visibility
                 break;
               case 2: // Third loop extends left (west)
-                horizontalExpansion = -70;
-                verticalExpansion = 30;
+                horizontalExpansion = -90; // Extend further horizontally for better visibility
+                verticalExpansion = 50; // Extend further vertically for better visibility
                 break;
               case 3: // Fourth loop extends down (south)
-                horizontalExpansion = 30;
-                verticalExpansion = -70;
+                horizontalExpansion = 50; // Extend further horizontally for better visibility
+                verticalExpansion = -90; // Extend further vertically for better visibility
                 break;
               default:
                 horizontalExpansion = 60;
@@ -1076,7 +1076,8 @@ export default function CytoscapeGraph() {
             
             // Calculate horizontal and vertical components from angle
             // Use sine and cosine to position loops in a circular pattern
-            const distanceFromNode = 60;
+            // Increase distance for better visibility
+            const distanceFromNode = 90; // Increased from 60 for better visibility
             horizontalExpansion = Math.round(Math.cos(angle) * distanceFromNode);
             verticalExpansion = Math.round(Math.sin(angle) * distanceFromNode);
           }
