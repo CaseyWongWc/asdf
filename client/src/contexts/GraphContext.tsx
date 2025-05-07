@@ -8,6 +8,7 @@ declare global {
 }
 
 export type GraphMode = 'editor' | 'algorithm';
+export type EdgeStyle = 'curved' | 'straight';
 
 export interface GraphContextProps {
   title: string;
@@ -35,6 +36,8 @@ export interface GraphContextProps {
   createEdge: (sourceId: string, targetId: string, weight?: number, cy?: any) => string | null;
   mode: GraphMode;
   setMode: (mode: GraphMode) => void;
+  edgeStyle: EdgeStyle;
+  setEdgeStyle: (style: EdgeStyle) => void;
   checkForModeSwitch: (title: string) => void;
   checkParity: () => boolean;
 }
@@ -65,6 +68,8 @@ export const GraphContext = createContext<GraphContextProps>({
   createEdge: () => null,
   mode: 'editor',
   setMode: () => {},
+  edgeStyle: 'curved',
+  setEdgeStyle: () => {},
   checkForModeSwitch: () => {},
   checkParity: () => false,
 });
@@ -85,6 +90,7 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
   const [edgeIdCounter, setEdgeIdCounter] = useState<number>(0);
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [mode, setMode] = useState<GraphMode>('editor');
+  const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('curved');
 
   const createNode = (x: number, y: number, label?: string, cy?: any) => {
     try {
@@ -282,6 +288,8 @@ export const GraphProvider = ({ children }: GraphProviderProps) => {
         createEdge,
         mode,
         setMode,
+        edgeStyle,
+        setEdgeStyle,
         checkForModeSwitch,
         checkParity,
       }}

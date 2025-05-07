@@ -7,6 +7,9 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import NodeStyleModal from "./NodeStyleModal";
 
+// Define edge display style type for toggle
+type EdgeDisplayStyle = 'curved' | 'straight';
+
 export default function CytoscapeGraph() {
   const cyRef = useRef<any>(null);
   const { 
@@ -18,6 +21,9 @@ export default function CytoscapeGraph() {
     mode 
   } = useContext(GraphContext);
   const isMobile = useIsMobile();
+  
+  // State for edge display style toggle
+  const [edgeDisplayStyle, setEdgeDisplayStyle] = useState<EdgeDisplayStyle>('curved');
   
   // Edge edit dialog state
   const [editEdgeOpen, setEditEdgeOpen] = useState(false);
