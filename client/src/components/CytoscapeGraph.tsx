@@ -381,7 +381,7 @@ export default function CytoscapeGraph() {
                   if (hasBidirectional) {
                     const sourceId = newEdge.data('source');
                     const targetId = newEdge.data('target');
-                    
+
                     // Always make the edge going from lower ID to higher ID curve upward
                     // and the edge going from higher ID to lower ID curve downward
                     const upwardCurve = 60;   // Positive means curve upward
@@ -655,12 +655,6 @@ export default function CytoscapeGraph() {
 
           // For bidirectional edges, we want both edges to be curved in opposite directions
           // Creating a bracket-like appearance
-
-          // Get IDs of both edges to see which was created first
-          const thisEdgeId = parseInt(ele.id().replace(/\D/g, ''));
-          const oppositeEdgeId = parseInt(oppositeEdge.id().replace(/\D/g, ''));
-
-          // Make both edges curved for bidirectional relationships
           return "unbundled-bezier";
         },
         "control-point-distances": function (ele: any) {
