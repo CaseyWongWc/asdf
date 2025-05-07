@@ -19,6 +19,8 @@ export default function CytoscapeGraph() {
   const [editEdgeOpen, setEditEdgeOpen] = useState(false);
   const [currentEdge, setCurrentEdge] = useState<any>(null);
   const [edgeWeight, setEdgeWeight] = useState(1);
+  const [edgeLabel, setEdgeLabel] = useState('');
+  const [isDirected, setIsDirected] = useState(false);
 
   useEffect(() => {
     if (cyRef.current) {
@@ -108,15 +110,18 @@ export default function CytoscapeGraph() {
               if (existingEdge.length > 0) {
                 setStatusMessage('Edge already exists between these nodes');
               } else {
-                // Add an undirected edge (visually)
-                cy.add({
+                // Add a new edge (undirected by default)
+                const newEdge = cy.add({
                   group: 'edges',
                   data: { 
                     id: edgeId, 
                     source: sourceNode, 
                     target: node.id(),
-                    weight: 1 
+                    weight: 1,
+                    label: ''  // Initialize with empty label
                   }
+                }).style({
+                  'target-arrow-shape': 'none'  // No arrow by default (undirected)
                 });
                 
                 setEdgeCount(cy.edges().length);
@@ -147,6 +152,9 @@ export default function CytoscapeGraph() {
           if (!sourceNode) {
             setCurrentEdge(edge);
             setEdgeWeight(edge.data('weight') || 1);
+            setEdgeLabel(edge.data('label') || '');
+            // Check if the edge has an arrow (is directed)
+            setIsDirected(edge.style('target-arrow-shape') !== 'none');
             setEditEdgeOpen(true);
           }
         });
@@ -179,7 +187,7 @@ export default function CytoscapeGraph() {
         cy.removeAllListeners(); // Remove all registered event listeners
       };
     }
-  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEditEdgeOpen]);
+  }, [setStatusMessage, setNodeCount, setEdgeCount, sourceNode, setSourceNode, setCurrentEdge, setEdgeWeight, setEdgeLabel, setIsDirected, setEditEdgeOpen]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -205,7 +213,15 @@ export default function CytoscapeGraph() {
         // Remove arrow for undirected graph
         'target-arrow-shape': 'none',
         'curve-style': 'bezier',
-        'label': 'data(weight)',
+        'label': (ele: any) => {
+          // Display both label and weight if label exists
+          const label = ele.data('label');
+          const weight = ele.data('weight');
+          if (label && label.length > 0) {
+            return `${label} (${weight})`;
+          }
+          return weight;
+        },
         'font-size': isMobile ? '14px' : '10px',
         'text-outline-width': '2px',
         'text-outline-color': 'white',
@@ -224,12 +240,27 @@ export default function CytoscapeGraph() {
     }
   ];
 
-  // Handle edge weight update
-  const updateEdgeWeight = () => {
+  // Handle edge update
+  const updateEdge = () => {
     if (currentEdge && cyRef.current) {
+      // Update edge data
       currentEdge.data('weight', edgeWeight);
+      currentEdge.data('label', edgeLabel);
+      
+      // Update edge style based on directed status
+      if (isDirected) {
+        currentEdge.style({
+          'target-arrow-shape': 'triangle',
+          'target-arrow-color': '#64748B'
+        });
+      } else {
+        currentEdge.style({
+          'target-arrow-shape': 'none'
+        });
+      }
+      
       setEditEdgeOpen(false);
-      setStatusMessage(`Edge weight updated to ${edgeWeight}`);
+      setStatusMessage(`Edge updated`);
     }
   };
 
@@ -287,6 +318,17 @@ export default function CytoscapeGraph() {
               </div>
               
               <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Label</label>
+                <input 
+                  type="text" 
+                  className="w-full p-2 border rounded"
+                  value={edgeLabel} 
+                  onChange={(e) => setEdgeLabel(e.target.value)} 
+                  placeholder="Optional edge label"
+                />
+              </div>
+              
+              <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Weight</label>
                 <input 
                   type="number" 
@@ -294,8 +336,20 @@ export default function CytoscapeGraph() {
                   value={edgeWeight} 
                   onChange={(e) => setEdgeWeight(Number(e.target.value))} 
                   min={1}
-                  autoFocus
                 />
+              </div>
+              
+              <div className="mb-4 flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="directed-toggle"
+                  className="mr-2 h-4 w-4" 
+                  checked={isDirected}
+                  onChange={(e) => setIsDirected(e.target.checked)}
+                />
+                <label htmlFor="directed-toggle" className="text-sm font-medium">
+                  Directed Edge (show arrow)
+                </label>
               </div>
             </div>
           )}
@@ -316,7 +370,7 @@ export default function CytoscapeGraph() {
               </button>
               <button 
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={updateEdgeWeight}
+                onClick={updateEdge}
               >
                 Save
               </button>
