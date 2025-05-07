@@ -639,7 +639,6 @@ export default function CytoscapeGraph() {
         "text-background-opacity": 1,
         "text-background-shape": "rectangle",
         "text-background-padding": 2,
-        "text-background-width": "100%",
         // Position the band in the middle of the node
         "text-margin-y": 0,
       },
