@@ -536,55 +536,74 @@ export default function CytoscapeGraph() {
         "text-outline-color": "#4299E1",
       },
     },
-    // Node with topText - add label above node
+    // Main node label (always visible, regardless of top/bottom text)
     {
-      selector: "node[topText]",
+      selector: "node",
       style: {
-        "label": function(ele: any) {
-          return ele.data("label") || ""; // Keep main label centered
-        },
+        "label": "data(label)",
         "text-valign": "center",
         "text-halign": "center",
-        "text-margin-y": 0
+        "text-margin-y": 0,
+        "font-weight": "bold",
+        "font-size": isMobile ? "16px" : "14px",
+        "text-outline-width": 2,
+        "text-outline-color": function(ele: any) {
+          return ele.style("background-color");
+        },
+        "color": function(ele: any) {
+          return ele.style("color") || "#FFFFFF";
+        },
+        "text-background-opacity": 0,
       }
     },
     
-    // Add top-text label
+    // Add top-text label as overlay
     {
       selector: "node[topText]",
       style: {
-        // Put top text in separate label field
-        "text-wrap": "wrap",
-        "text-max-width": 120,
-        "text-valign": "top",
-        "text-halign": "center",
-        "font-size": isMobile ? "12px" : "10px",
-        "color": "#E2E8F0",
+        "overlay-padding": 5,
+        "overlay-opacity": 0,
+        "overlay-color": "#000",
+      }
+    },
+    
+    // Top text with ::before pseudo element
+    {
+      selector: "node[topText]",
+      style: {
+        // Special top text styling using source-label
+        "source-label": "data(topText)",
+        "source-text-offset": 0,
+        "source-text-margin-y": -25,
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
         "text-background-shape": "roundrectangle",
         "text-background-padding": 2,
-        "text-margin-y": -30,
-        "content": "data(topText)",
+        "source-text-rotation": "autorotate",
+        "font-size": isMobile ? "12px" : "10px",
+        "color": "#E2E8F0",
+        "text-wrap": "wrap",
+        "text-max-width": 120,
       }
     },
     
-    // Node with bottomText - add label below node
+    // Bottom text with ::after pseudo element
     {
       selector: "node[bottomText]",
       style: {
-        "text-wrap": "wrap",
-        "text-max-width": 120,
-        "text-valign": "bottom",
-        "text-halign": "center",
-        "font-size": isMobile ? "12px" : "10px",
-        "color": "#E2E8F0", 
+        // Special bottom text styling using target-label
+        "target-label": "data(bottomText)",
+        "target-text-offset": 0,
+        "target-text-margin-y": 25,
         "text-background-opacity": 0.7,
         "text-background-color": "#4A5568",
         "text-background-shape": "roundrectangle",
         "text-background-padding": 2,
-        "text-margin-y": 30,
-        "content": "data(bottomText)"
+        "target-text-rotation": "autorotate",
+        "font-size": isMobile ? "12px" : "10px",
+        "color": "#E2E8F0",
+        "text-wrap": "wrap",
+        "text-max-width": 120,
       }
     },
     // Basic edge style
