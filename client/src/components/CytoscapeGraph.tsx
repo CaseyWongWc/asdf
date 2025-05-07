@@ -231,8 +231,9 @@ export default function CytoscapeGraph() {
         'text-background-color': '#e2e8f0',
         'text-background-padding': '5px',
         'text-background-shape': 'roundrectangle',
-        'text-valign': 'center',
-        'text-halign': 'center',
+        'text-rotation': 'autorotate',
+        'text-margin-y': -10,
+        'text-margin-x': 0,
         'color': '#1a202c' // Darker text color
       }
     },
