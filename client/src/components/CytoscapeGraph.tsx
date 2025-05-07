@@ -120,21 +120,42 @@ export default function CytoscapeGraph() {
           }
         });
         
-        // Double-click handler for node styling
-        cy.on('dbltap', 'node', function(event: any) {
-          // Open the node style dialog
-          const node = event.target;
-          setSelectedNodeId(node.id());
-          setNodeStyleOpen(true);
-          setStatusMessage(`Editing style for "${node.data('label')}"`);
-          
-          // Prevent the click handler from firing
-          event.stopPropagation();
-        });
+        // Track the last click for double-click detection
+        let lastClickTime = 0;
+        let lastClickNodeId = null;
+        const doubleClickDelay = 300; // milliseconds
         
-        // Node click handler for edge creation
+        // Combined single/double click handler for node actions
         cy.on('tap', 'node', function(event: any) {
           const node = event.target;
+          const nodeId = node.id();
+          const clickTime = new Date().getTime();
+          
+          // Check if this is a double-click on the same node
+          if (lastClickNodeId === nodeId && clickTime - lastClickTime < doubleClickDelay) {
+            // Handle as double-click - open styling modal
+            console.log(`Double-click detected on node ${nodeId}`);
+            setSelectedNodeId(nodeId);
+            setNodeStyleOpen(true);
+            setStatusMessage(`Editing style for "${node.data('label')}"`);
+            
+            // If this was a source node, deselect it to avoid creating an edge
+            if (sourceNode === nodeId) {
+              node.removeClass('source-node');
+              setSourceNode(null);
+            }
+            
+            // Reset click tracking
+            lastClickTime = 0;
+            lastClickNodeId = null;
+            return;
+          }
+          
+          // Update click tracking for future double-click detection
+          lastClickTime = clickTime;
+          lastClickNodeId = nodeId;
+          
+          // Continue with regular node click handling
           
           if (sourceNode) {
             const edgeId = `e${Date.now()}`;
