@@ -297,22 +297,13 @@ export default function CytoscapeGraph() {
         'label': 'data(label)'
       }
     },
-    // Edge with description - always show at source node
+    // Edge with description - always show at source node for all edges
     {
       selector: 'edge[description]',
       style: {
         'source-label': 'data(description)',
         'source-text-offset': 15,
         'source-text-margin-y': -10
-      }
-    },
-    // For directed edges, also show at target if position is set to "below"
-    {
-      selector: 'edge[description][targetArrow="triangle"]',
-      style: {
-        'target-label': 'data(description)',
-        'target-text-offset': 15,
-        'target-text-margin-y': 10
       }
     },
     // Source node style
