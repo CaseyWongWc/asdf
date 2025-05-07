@@ -321,17 +321,39 @@ export default function CytoscapeGraph() {
                   
                   // If there are multiple edges in same direction, offset them slightly
                   if (existingEdgeInDirection.length > 0) {
-                    // Apply offset regardless of whether it's a bidirectional relationship
-                    const offset = edgeNumber * 8; // Increase offset for each edge
+                    // Apply different offsets based on edge number
+                    // First edge at -20, second at +20, third at +60 - creating a fan effect 
+                    let offset;
+                    
+                    // For multiple edges in same direction, use a simple progression
+                    if (edgeNumber === 1) {
+                      offset = -20;
+                    } else if (edgeNumber === 2) {
+                      offset = 20; 
+                    } else {
+                      offset = 60;
+                    }
+                    
                     newEdge.style({
                       "curve-style": "unbundled-bezier",
                       "control-point-distances": offset,
                       "control-point-weights": 0.5,
                     });
                     
-                    // Update existing edges with progressive offset
+                    // Update existing edges with nice offsets too to ensure no overlapping
+                    // This creates a fan-out pattern for the edges
                     existingEdgeInDirection.forEach((edge: any, i: number) => {
-                      const oldOffset = (i+1) * 8;
+                      const oldEdgeNumber = i+1;
+                      let oldOffset;
+                      
+                      if (oldEdgeNumber === 1) {
+                        oldOffset = -20;
+                      } else if (oldEdgeNumber === 2) {
+                        oldOffset = 20;
+                      } else {
+                        oldOffset = 60;
+                      }
+                      
                       edge.style({
                         "curve-style": "unbundled-bezier",
                         "control-point-distances": oldOffset,
@@ -357,10 +379,18 @@ export default function CytoscapeGraph() {
 
                   // If this created a bidirectional relationship, update the opposite edge too
                   if (hasBidirectional) {
-                    // Find the opposite direction edge and make it curved too
+                    // Find the opposite direction edge and make it curved too with appropriate offset
+                    // Use -40 and 40 for bidirectional pairs to make them distinct but not too far apart
                     oppositeEdge.style({
                       "curve-style": "unbundled-bezier",
-                      "control-point-distances": controlDistance * -1, // Opposite curve
+                      "control-point-distances": -40, // Use a fixed offset for bidirectional edges
+                      "control-point-weights": 0.5,
+                    });
+                    
+                    // Adjust this edge as well for visual clarity in bidirectional pairs
+                    newEdge.style({
+                      "curve-style": "unbundled-bezier", 
+                      "control-point-distances": 40,
                       "control-point-weights": 0.5,
                     });
                   }
@@ -879,16 +909,24 @@ export default function CytoscapeGraph() {
       // If there are other parallel edges, reapply their styling with correct offsets
       if (parallelEdges.length > 0) {
         parallelEdges.forEach((edge: any, i: number) => {
-          const offset = (i+1) * 8; // Progressive offset
+          // Update the edge number and label
+          edge.data("edgeNumber", i+1);
+          
+          // Apply new offset pattern to ensure no overlapping 
+          let offset;
+          if (i === 0) {
+            offset = -20;
+          } else if (i === 1) {
+            offset = 20;
+          } else {
+            offset = 60;
+          }
           
           edge.style({
             "curve-style": "unbundled-bezier",
             "control-point-distances": offset,
             "control-point-weights": 0.5
           });
-          
-          // Update the edge number and label
-          edge.data("edgeNumber", i+1);
           
           const label = edge.data("label") || "";
           const weight = edge.data("weight") || "";
