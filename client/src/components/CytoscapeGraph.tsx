@@ -253,10 +253,10 @@ export default function CytoscapeGraph() {
                     )
                   );
                   
-                  // Always use unbundled-bezier for better control
-                  const curveStyle = 'unbundled-bezier';
+                  // Use the selected edge display style
+                  const curveStyle = edgeDisplayStyle === 'curved' ? 'unbundled-bezier' : 'straight';
                   
-                  // Create stronger gravity effect for parallel edges
+                  // Create stronger gravity effect for parallel edges if using curved style
                   // First edge has control points above, second below
                   const controlDistance = existingEdgeInDirection.length === 0 ? -80 : 80;
                   
@@ -288,14 +288,20 @@ export default function CytoscapeGraph() {
                   newEdge.data('multiEdgeLabel', multiEdgeLabel);
                   newEdge.data('edgeNumber', edgeNumber);
                   
-                  newEdge.style({
+                  const styleObj: any = {
                     'target-arrow-shape': 'triangle',
                     'target-arrow-color': '#64748B',
                     'line-style': lineStyle,
-                    'curve-style': 'unbundled-bezier',
-                    'control-point-distances': controlDistance,
-                    'control-point-weights': 0.5
-                  });
+                    'curve-style': curveStyle
+                  };
+                  
+                  // Only add control points if using curved style
+                  if (curveStyle === 'unbundled-bezier') {
+                    styleObj['control-point-distances'] = controlDistance;
+                    styleObj['control-point-weights'] = 0.5;
+                  }
+                  
+                  newEdge.style(styleObj);
                   
                   console.log(`Edge created successfully, new edge count: ${cy.edges().length}`);
                   setEdgeCount(cy.edges().length);
@@ -439,7 +445,7 @@ export default function CytoscapeGraph() {
   }, [mode, sourceNode, setSourceNode, setNodeCount, setEdgeCount, setStatusMessage, 
       setCurrentEdge, setEdgeWeight, setEdgeLabel, setEdgeDescription, setDescriptionPosition, 
       setIsDirected, setEditEdgeOpen, setHasWeight, setEdgeStyle, setEdgeCurve, setEdgeCurvature,
-      setNodeStyleOpen, setSelectedNodeId]);
+      setNodeStyleOpen, setSelectedNodeId, edgeDisplayStyle]);
 
   const cytoscapeStyle: any[] = [
     {
@@ -765,6 +771,75 @@ export default function CytoscapeGraph() {
         autoungrabify={false} // Allow nodes to be moved
         layout={{ name: 'preset' }} // Use preset layout to respect node positions
       />
+      
+      {/* Edge Style Toggle Control */}
+      {mode === 'editor' && (
+        <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex items-center gap-2 border border-gray-200">
+          <span className="text-sm font-medium whitespace-nowrap">Edge Style:</span>
+          <div className="flex space-x-2">
+            <Button 
+              size="sm" 
+              variant={edgeDisplayStyle === 'curved' ? 'default' : 'outline'}
+              onClick={() => {
+                setEdgeDisplayStyle('curved');
+                setStatusMessage('Using curved edges with gravity effect');
+                
+                // Apply to existing edges
+                if (cyRef.current) {
+                  cyRef.current.edges().forEach((edge: any) => {
+                    if (edge.data('source') === edge.data('target')) {
+                      // Don't change self-loops
+                      return;
+                    }
+                    
+                    // Get any existing parallel edges
+                    const parallelEdges = cyRef.current.edges().filter((e: any) => 
+                      (e.data('source') === edge.data('source') && e.data('target') === edge.data('target')) ||
+                      (e.data('source') === edge.data('target') && e.data('target') === edge.data('source'))
+                    );
+                    
+                    // Apply different control points based on edge number
+                    const edgeNumber = edge.data('edgeNumber') || 1;
+                    const controlDistance = edgeNumber === 1 ? -80 : 80;
+                    
+                    edge.style({
+                      'curve-style': 'unbundled-bezier',
+                      'control-point-distances': controlDistance,
+                      'control-point-weights': 0.5
+                    });
+                  });
+                }
+              }}
+            >
+              Curved
+            </Button>
+            <Button 
+              size="sm" 
+              variant={edgeDisplayStyle === 'straight' ? 'default' : 'outline'}
+              onClick={() => {
+                setEdgeDisplayStyle('straight');
+                setStatusMessage('Using straight edges');
+                
+                // Apply to existing edges
+                if (cyRef.current) {
+                  cyRef.current.edges().forEach((edge: any) => {
+                    if (edge.data('source') === edge.data('target')) {
+                      // Don't change self-loops
+                      return;
+                    }
+                    
+                    edge.style({
+                      'curve-style': 'straight'
+                    });
+                  });
+                }
+              }}
+            >
+              Straight
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Edge Edit Dialog */}
       <Dialog open={editEdgeOpen} onOpenChange={setEditEdgeOpen}>
