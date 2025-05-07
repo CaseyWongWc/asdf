@@ -297,13 +297,25 @@ export default function CytoscapeGraph() {
         'label': 'data(label)'
       }
     },
-    // Edge with description - always show at source node for all edges
+    // Edge with description for directed edges - only show at source node
     {
-      selector: 'edge[description]',
+      selector: 'edge[description][targetArrow="triangle"]',
       style: {
         'source-label': 'data(description)',
         'source-text-offset': 15,
         'source-text-margin-y': -10
+      }
+    },
+    // Edge with description for undirected edges - show at both source and target nodes
+    {
+      selector: 'edge[description][targetArrow="none"]',
+      style: {
+        'source-label': 'data(description)',
+        'source-text-offset': 15,
+        'source-text-margin-y': -10,
+        'target-label': 'data(description)',
+        'target-text-offset': 15,
+        'target-text-margin-y': 10
       }
     },
     // Source node style
