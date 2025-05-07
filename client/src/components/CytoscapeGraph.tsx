@@ -196,7 +196,7 @@ export default function CytoscapeGraph() {
                 return;
               }
               
-              // Create a self-loop with JFLAP-like styling
+              // Create a self-loop with rectangular styling (as per diagram)
               const selfLoopEdge = cy.add({
                 group: 'edges',
                 data: { 
@@ -207,23 +207,20 @@ export default function CytoscapeGraph() {
                   label: '',
                   description: '',
                   descriptionPosition: 'above',
-                  curveStyle: 'bezier',
-                  curvature: 80,
-                  targetArrow: 'none',
-                  // Special properties for self-loops
-                  loopDirection: '-45deg', // JFLAP-like loop start angle
-                  loopSweep: '315deg',     // JFLAP-like loop arc size
+                  isRectangularSelfLoop: true, // Flag to identify our custom self-loop style
+                  targetArrow: 'triangle'
                 }
               });
               
-              // Apply styles to the self-loop edge
+              // Apply styles to the self-loop edge with rectangular path
               selfLoopEdge.style({
-                'target-arrow-shape': 'none',
+                'target-arrow-shape': 'triangle',
                 'line-style': 'solid',
-                'curve-style': 'bezier',
-                'control-point-step-size': 80,
-                'control-point-distance': 120, // Higher distance for more pronounced curve
-                'control-point-weight': 0.7,   // Weight for curve position
+                'curve-style': 'segments',
+                'segment-distances': [20, 20, 20], // Controls how far out the rectangle extends
+                'segment-weights': [0.25, 0.5, 0.75], // Control points for the segments
+                'edge-distances': 'node-position',
+                'arrow-scale': 1.5
               });
               
               console.log(`Self-loop created, new edge count: ${cy.edges().length}`);
@@ -278,11 +275,9 @@ export default function CytoscapeGraph() {
                     const oppositeEdge = existingEdgeInOppositeDirection[0];
                     oppositeEdge.data('isBidirectional', true);
                     
-                    // Always make bidirectional edges curved with distinct style
+                    // Style bidirectional edges with distinct color but straight lines
                     oppositeEdge.style({
-                      'curve-style': 'unbundled-bezier',
-                      'control-point-distances': 80, // Curve outward
-                      'control-point-weights': 0.5,
+                      'curve-style': 'straight',
                       'target-arrow-color': '#3182CE', // Blue to indicate bidirectional
                       'line-color': '#3182CE'
                     });
@@ -328,13 +323,11 @@ export default function CytoscapeGraph() {
                     'curve-style': curveStyle
                   };
                   
-                  // Style bidirectional edges differently - always curved
+                  // Style bidirectional edges differently - use straight lines with distinct color
                   if (isBidirectional) {
                     styleObj['target-arrow-color'] = '#3182CE'; // Blue arrows
                     styleObj['line-color'] = '#3182CE'; // Blue lines
-                    styleObj['curve-style'] = 'unbundled-bezier'; // Force curved for bidirectional
-                    styleObj['control-point-distances'] = -80; // Curve in opposite direction
-                    styleObj['control-point-weights'] = 0.5;
+                    styleObj['curve-style'] = 'straight'; // Use straight lines for bidirectional
                     
                     // If using a status message, indicate this is bidirectional
                     setStatusMessage(`Created bidirectional edge relationship`);
@@ -618,7 +611,7 @@ export default function CytoscapeGraph() {
         'line-color': '#805AD5' // Purple to distinguish from first edge
       }
     },
-    // Special style for bidirectional edges
+    // Special style for bidirectional edges - now using straight lines
     {
       selector: 'edge[isBidirectional]',
       style: {
@@ -626,17 +619,7 @@ export default function CytoscapeGraph() {
         'target-arrow-color': '#3182CE', // Blue arrows
         'width': isMobile ? 3 : 2.5, // Slightly thicker
         'arrow-scale': 1.7, // Slightly larger arrows
-        'curve-style': 'unbundled-bezier', // Always curved for bidirectional
-        'control-point-distances': function(ele: any) {
-          const source = ele.data('source');
-          const target = ele.data('target');
-          
-          // Check direction to determine curve direction
-          // This creates the bracket/parenthesis effect by having 
-          // edges curve in opposite directions
-          return ele.data('source') === source ? 80 : -80;
-        },
-        'control-point-weights': 0.5
+        'curve-style': 'straight' // Use straight lines for bidirectional edges
       }
     },
     // Edge with label but no weight style
