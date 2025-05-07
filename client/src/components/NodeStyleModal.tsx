@@ -53,6 +53,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
   const [borderColor, setBorderColor] = useState('#2B6CB0');
   const [textColor, setTextColor] = useState('#FFFFFF');
   
+  // Node text fields
+  const [topText, setTopText] = useState('');
+  const [bottomText, setBottomText] = useState('');
+  
   // Load node settings when the dialog opens and a node is selected
   useEffect(() => {
     if (open && nodeId && window.cy) {
@@ -71,6 +75,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
         
         setBorderColor(node.style('border-color') || '#2B6CB0');
         setTextColor(node.style('color') || '#FFFFFF');
+        
+        // Get text fields
+        setTopText(node.data('topText') || '');
+        setBottomText(node.data('bottomText') || '');
       }
     }
   }, [open, nodeId]);
@@ -97,6 +105,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       'border-color': borderColor,
       'color': textColor,
     });
+    
+    // Update node data with top and bottom text
+    node.data('topText', topText.trim());
+    node.data('bottomText', bottomText.trim());
 
     setStatusMessage(`Node styling updated`);
     onOpenChange(false);
@@ -121,6 +133,10 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
       'text-outline-color': '#4299E1'
     });
     
+    // Reset node text data
+    node.data('topText', '');
+    node.data('bottomText', '');
+    
     // Update local state
     setNodeColor('#4299E1');
     setNodeShape('ellipse');
@@ -128,6 +144,8 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
     setBorderWidth([2]);
     setBorderColor('#2B6CB0');
     setTextColor('#FFFFFF');
+    setTopText('');
+    setBottomText('');
     
     setStatusMessage('Node style reset to default');
   };
@@ -336,6 +354,39 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
               <div 
                 className="w-6 h-6 border border-gray-300 rounded" 
                 style={{ backgroundColor: textColor }}
+              />
+            </div>
+          </div>
+          
+          {/* Node text customization section */}
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-base font-medium mb-4">Node Text Customization</h3>
+            
+            {/* Top Text */}
+            <div className="space-y-2 mb-4">
+              <Label htmlFor="top-text" className="text-sm font-medium">
+                Top Text
+              </Label>
+              <Input
+                id="top-text"
+                value={topText}
+                onChange={(e) => setTopText(e.target.value)}
+                placeholder="Text displayed above node"
+                className="w-full"
+              />
+            </div>
+            
+            {/* Bottom Text */}
+            <div className="space-y-2">
+              <Label htmlFor="bottom-text" className="text-sm font-medium">
+                Bottom Text
+              </Label>
+              <Input
+                id="bottom-text"
+                value={bottomText}
+                onChange={(e) => setBottomText(e.target.value)}
+                placeholder="Text displayed below node"
+                className="w-full"
               />
             </div>
           </div>
