@@ -507,114 +507,57 @@ export default function CytoscapeGraph() {
       },
     },
     
-    // Top text label style (for UML-style "stereotype" display)
+    // Top text label (using source-label without recursion)
     {
       selector: "node[topText]",
       style: {
-        "overlay-opacity": 0, // Make sure overlays don't interfere
-        // Create a separate label for top text
-        // This is a simplified approach that avoids the complex recursive styling
-        "label": function(ele: any) {
-          const topText = ele.data("topText");
-          if (topText && topText.length > 0) {
-            // Add the top text as an HTML element
-            setTimeout(() => {
-              try {
-                const nodeId = ele.id();
-                const boundingBox = ele.renderedBoundingBox();
-                
-                // Remove any existing top text element
-                const existingTopText = document.getElementById(`top-text-${nodeId}`);
-                if (existingTopText) {
-                  existingTopText.remove();
-                }
-                
-                // Create new element
-                const topTextElem = document.createElement("div");
-                topTextElem.id = `top-text-${nodeId}`;
-                topTextElem.className = "cytoscape-top-text";
-                topTextElem.textContent = topText;
-                topTextElem.style.position = "absolute";
-                topTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
-                topTextElem.style.top = `${boundingBox.y1 - 16}px`;
-                topTextElem.style.transform = "translate(-50%, -50%)";
-                topTextElem.style.fontFamily = "inherit";
-                topTextElem.style.fontSize = "11px";
-                topTextElem.style.fontWeight = "normal";
-                topTextElem.style.textAlign = "center";
-                topTextElem.style.padding = "2px 6px";
-                topTextElem.style.borderRadius = "4px";
-                topTextElem.style.backgroundColor = "#f3f4f6";
-                topTextElem.style.border = "1px solid #d1d5db";
-                topTextElem.style.color = "#1f2937";
-                topTextElem.style.pointerEvents = "none"; // Don't interfere with clicks
-                
-                // Add to DOM
-                document.body.appendChild(topTextElem);
-              } catch (error) {
-                console.error("Error creating top text label:", error);
-              }
-            }, 10);
-          }
-          
-          // Return the original label for the main text
-          return ele.data("label");
-        }
-      }
+        "overlay-padding": 5,
+        "overlay-opacity": 0,
+        "overlay-color": "#000",
+      },
     },
     
-    // Bottom text label style
+    // Top text style using source-label (simple approach)
+    {
+      selector: "node[topText]",
+      style: {
+        // Using source-label to place text above the node
+        "source-label": "data(topText)",
+        "source-text-offset": 0,
+        "source-text-margin-y": -25,
+        "source-text-rotation": "autorotate",
+        "source-text-background-color": "#F3F4F6",
+        "source-text-background-opacity": 0.9,
+        "source-text-background-padding": 3,
+        "source-text-background-shape": "roundrectangle",
+        "source-text-border-width": 1,
+        "source-text-border-color": "#D1D5DB",
+        "source-text-border-opacity": 0.8,
+        "source-text-color": "#1F2937",
+        "source-text-font-size": isMobile ? "12px" : "10px",
+      },
+    },
+    
+    // Bottom text style using target-label (simple approach)
     {
       selector: "node[bottomText]",
       style: {
-        "overlay-opacity": 0,
-        // Create a separate label for bottom text - same approach as top text
-        "label": function(ele: any) {
-          const bottomText = ele.data("bottomText");
-          if (bottomText && bottomText.length > 0) {
-            setTimeout(() => {
-              try {
-                const nodeId = ele.id();
-                const boundingBox = ele.renderedBoundingBox();
-                
-                // Remove any existing bottom text element
-                const existingBottomText = document.getElementById(`bottom-text-${nodeId}`);
-                if (existingBottomText) {
-                  existingBottomText.remove();
-                }
-                
-                // Create new element
-                const bottomTextElem = document.createElement("div");
-                bottomTextElem.id = `bottom-text-${nodeId}`;
-                bottomTextElem.className = "cytoscape-bottom-text";
-                bottomTextElem.textContent = bottomText;
-                bottomTextElem.style.position = "absolute";
-                bottomTextElem.style.left = `${boundingBox.x1 + (boundingBox.w/2)}px`;
-                bottomTextElem.style.top = `${boundingBox.y2 + 16}px`;
-                bottomTextElem.style.transform = "translate(-50%, -50%)";
-                bottomTextElem.style.fontFamily = "inherit";
-                bottomTextElem.style.fontSize = "11px";
-                bottomTextElem.style.fontWeight = "normal";
-                bottomTextElem.style.fontStyle = "italic";
-                bottomTextElem.style.textAlign = "center";
-                bottomTextElem.style.padding = "2px 6px";
-                bottomTextElem.style.backgroundColor = "#f8fafc";
-                bottomTextElem.style.border = "1px solid #e2e8f0";
-                bottomTextElem.style.color = "#475569";
-                bottomTextElem.style.pointerEvents = "none";
-                
-                // Add to DOM
-                document.body.appendChild(bottomTextElem);
-              } catch (error) {
-                console.error("Error creating bottom text label:", error);
-              }
-            }, 10);
-          }
-          
-          // Return the original label for the main text
-          return ele.data("label");
-        }
-      }
+        // Using target-label to place text below the node
+        "target-label": "data(bottomText)",
+        "target-text-offset": 0,
+        "target-text-margin-y": 25,
+        "target-text-rotation": "autorotate",
+        "target-text-background-color": "#F8FAFC",
+        "target-text-background-opacity": 0.9,
+        "target-text-background-padding": 3,
+        "target-text-background-shape": "roundrectangle",
+        "target-text-border-width": 1,
+        "target-text-border-color": "#E2E8F0",
+        "target-text-border-opacity": 0.8,
+        "target-text-color": "#475569",
+        "target-text-font-size": isMobile ? "12px" : "10px",
+        "target-text-font-style": "italic",
+      },
     },
     
     // Basic edge style
