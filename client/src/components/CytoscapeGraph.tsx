@@ -18,9 +18,10 @@ export default function CytoscapeGraph() {
   // Edge edit dialog state
   const [editEdgeOpen, setEditEdgeOpen] = useState(false);
   const [currentEdge, setCurrentEdge] = useState<any>(null);
-  const [edgeWeight, setEdgeWeight] = useState(1);
+  const [edgeWeight, setEdgeWeight] = useState<number>(1);
   const [edgeLabel, setEdgeLabel] = useState('');
   const [isDirected, setIsDirected] = useState(false);
+  const [hasWeight, setHasWeight] = useState(true);
 
   useEffect(() => {
     if (cyRef.current) {
@@ -216,12 +217,21 @@ export default function CytoscapeGraph() {
         'arrow-scale': 1.5,
         'curve-style': 'straight',
         'label': (ele: any) => {
-          // Display both label and weight if label exists
+          // Display based on label and weight availability
           const label = ele.data('label');
           const weight = ele.data('weight');
+          
+          // If the edge has no weight (weightless)
+          if (weight === null || weight === undefined) {
+            return label && label.length > 0 ? label : '';
+          }
+          
+          // If the edge has both label and weight
           if (label && label.length > 0) {
             return `${label} (${weight})`;
           }
+          
+          // If the edge has only weight
           return weight;
         },
         'font-size': isMobile ? '14px' : '12px',
@@ -375,7 +385,20 @@ export default function CytoscapeGraph() {
                   />
                 </div>
                 
-                <div className="mb-4">
+                <div className="mb-4 flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="weightless-toggle"
+                    className="mr-2 h-4 w-4 accent-blue-600" 
+                    checked={!hasWeight}
+                    onChange={(e) => setHasWeight(!e.target.checked)}
+                  />
+                  <label htmlFor="weightless-toggle" className="text-sm font-medium text-gray-700">
+                    Weightless Edge (no number)
+                  </label>
+                </div>
+                
+                <div className={`mb-4 ${!hasWeight ? 'opacity-50' : ''}`}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
                   <input 
                     type="number" 
@@ -383,6 +406,7 @@ export default function CytoscapeGraph() {
                     value={edgeWeight} 
                     onChange={(e) => setEdgeWeight(Number(e.target.value))} 
                     min={1}
+                    disabled={!hasWeight}
                   />
                 </div>
                 
