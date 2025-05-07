@@ -611,9 +611,15 @@ export default function CytoscapeGraph() {
       selector: "edge",
       style: {
         width: isMobile ? 3 : 2,
-        "line-color": "#64748B",
+        "line-color": function(ele: any) {
+          // Use the edge's custom color if set, otherwise default
+          return ele.style('line-color') || "#64748B";
+        },
         "target-arrow-shape": "triangle",
-        "target-arrow-color": "#64748B",
+        "target-arrow-color": function(ele: any) {
+          // Match arrow color to line color for consistency
+          return ele.style('line-color') || "#64748B";
+        },
         "arrow-scale": 1.5,
         "curve-style": "unbundled-bezier",
         "control-point-distances": 50,

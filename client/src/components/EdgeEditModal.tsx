@@ -7,11 +7,24 @@ import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Trash2 } from "lucide-react";
 
+// Edge color options
+const EDGE_COLORS = [
+  { name: "Gray", value: "#64748B" },
+  { name: "Blue", value: "#3B82F6" },
+  { name: "Green", value: "#10B981" },
+  { name: "Red", value: "#EF4444" },
+  { name: "Purple", value: "#8B5CF6" },
+  { name: "Orange", value: "#F97316" },
+  { name: "Yellow", value: "#FACC15" },
+  { name: "Teal", value: "#14B8A6" }
+];
+
 export default function EdgeEditModal() {
   const { edgeEditId, setEdgeEditId, setStatusMessage, setEdgeCount } = useContext(GraphContext);
   const [edgeWeight, setEdgeWeight] = useState<number>(1);
   const [sourceNode, setSourceNode] = useState<string>("");
   const [targetNode, setTargetNode] = useState<string>("");
+  const [edgeColor, setEdgeColor] = useState<string>("#64748B"); // Default gray
   const isMobile = useIsMobile();
   
   useEffect(() => {
@@ -21,6 +34,10 @@ export default function EdgeEditModal() {
         setEdgeWeight(parseInt(edge.data('weight') || "1", 10));
         setSourceNode(edge.data('source') || "");
         setTargetNode(edge.data('target') || "");
+        
+        // Get the current color of the edge
+        const currentColor = edge.style('line-color') || "#64748B";
+        setEdgeColor(currentColor);
       }
     }
   }, [edgeEditId]);
@@ -29,8 +46,16 @@ export default function EdgeEditModal() {
     if (edgeEditId && window.cy) {
       const edge = window.cy.getElementById(edgeEditId);
       if (edge) {
+        // Update edge data
         edge.data('weight', edgeWeight);
-        setStatusMessage(`Edge weight updated to ${edgeWeight}`);
+        
+        // Update edge style
+        edge.style({
+          'line-color': edgeColor,
+          'target-arrow-color': edgeColor
+        });
+        
+        setStatusMessage(`Edge updated with weight ${edgeWeight}`);
       }
     }
     setEdgeEditId(null);
@@ -132,8 +157,46 @@ export default function EdgeEditModal() {
               size={isMobile ? 30 : undefined}
             />
           </div>
+          
+          {/* Edge color selector */}
+          <div className={`${isMobile ? 'grid grid-cols-1 gap-2 mt-4' : 'grid grid-cols-4 items-center gap-4'}`}>
+            <Label className={`${isMobile ? 'text-left font-medium text-base' : 'text-right'}`}>
+              Line Color
+            </Label>
+            <div className={`${isMobile ? '' : 'col-span-3'}`}>
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {EDGE_COLORS.map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    className={`h-10 rounded-md transition-all ${
+                      edgeColor === color.value 
+                        ? 'ring-2 ring-offset-2 ring-blue-500' 
+                        : 'hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: color.value }}
+                    onClick={() => setEdgeColor(color.value)}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Input 
+                  type="text" 
+                  value={edgeColor} 
+                  onChange={(e) => setEdgeColor(e.target.value)} 
+                  className="w-32"
+                  placeholder="#RRGGBB"
+                />
+                <div 
+                  className="w-6 h-6 border border-gray-300 rounded" 
+                  style={{ backgroundColor: edgeColor }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        <DialogFooter className={isMobile ? 'flex-col space-y-2' : ''}>
+        <DialogFooter className={isMobile ? 'flex-col space-y-2 mt-6' : 'mt-4'}>
           <Button variant="outline" onClick={handleCancel} className={isMobile ? 'w-full py-3' : ''}>Cancel</Button>
           <Button onClick={handleSave} className={isMobile ? 'w-full py-3' : ''}>Save Changes</Button>
         </DialogFooter>
