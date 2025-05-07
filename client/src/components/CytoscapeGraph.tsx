@@ -654,27 +654,93 @@ export default function CytoscapeGraph() {
       },
     },
 
-    // Top text with ::before pseudo element - simplified approach
+    // Complete node style with multiline label for top, main, and bottom text
+    {
+      selector: "node[topText], node[bottomText]",
+      style: {
+        // Create a multi-line label with all three parts
+        "label": function(ele: any) {
+          const topText = ele.data("topText") || "";
+          const mainLabel = ele.data("label") || "";
+          const bottomText = ele.data("bottomText") || "";
+          
+          // Format the text with special markers for styling
+          let labelParts = [];
+          
+          // Add top text if present (with a special marker)
+          if (topText) {
+            labelParts.push(`«${topText}»`);
+          }
+          
+          // Add main label
+          if (mainLabel) {
+            labelParts.push(mainLabel);
+          }
+          
+          // Add bottom text if present (with a special marker)
+          if (bottomText) {
+            labelParts.push(`『${bottomText}』`);
+          }
+          
+          return labelParts.join("\n");
+        },
+        "text-wrap": "wrap",
+        "text-max-width": "120px",
+        "text-valign": "center",
+        "text-halign": "center",
+        "font-family": "Arial, sans-serif",
+        "text-margin-y": 0,
+      }
+    },
+    
+    // Style for nodes with top text - increase node height to accommodate and style the text
     {
       selector: "node[topText]",
       style: {
-        // Special top text styling using source-label with minimal styling to avoid conflicts
-        "source-label": "data(topText)",
-        "source-text-offset": 0,
-        "source-text-margin-y": -25,
-        "source-text-rotation": "autorotate",
+        // Increase node dimensions to fit additional text
+        "height": function(ele: any) {
+          // Get the base height and add space for top text
+          const baseHeight = parseInt(ele.style("height").replace("px", ""));
+          return `${baseHeight + 20}px`;
+        },
+        "width": function(ele: any) {
+          // Make node wider to accommodate text
+          const baseWidth = parseInt(ele.style("width").replace("px", ""));
+          return `${Math.max(baseWidth, 60)}px`;
+        },
+        // Add background band
+        "background-blacken": 0.1,
+        // Make text styling more prominent
+        "font-weight": "normal",
+        "text-background-opacity": 0.9,
+        "text-background-color": "#E2E8F0",
+        "text-background-shape": "roundrectangle",
+        "text-background-padding": 3
       },
     },
-
-    // Bottom text with ::after pseudo element - simplified approach
+    
+    // Style for nodes with bottom text - increase height and style
     {
       selector: "node[bottomText]",
       style: {
-        // Special bottom text styling using target-label with minimal styling to avoid conflicts
-        "target-label": "data(bottomText)",
-        "target-text-offset": 0,
-        "target-text-margin-y": 25,
-        "target-text-rotation": "autorotate",
+        // Increase node dimensions to fit additional text
+        "height": function(ele: any) {
+          // Get the base height and add space for bottom text
+          const baseHeight = parseInt(ele.style("height").replace("px", ""));
+          return `${baseHeight + 20}px`;
+        },
+        "width": function(ele: any) {
+          // Make node wider to accommodate text
+          const baseWidth = parseInt(ele.style("width").replace("px", ""));
+          return `${Math.max(baseWidth, 60)}px`;
+        },
+        // Add styling for better visibility
+        "background-blacken": 0.1,
+        "font-weight": "normal",
+        "text-background-opacity": 0.9,
+        "text-background-color": "#E2E8F0",
+        "text-background-shape": "roundrectangle",
+        "text-background-padding": 3
       },
     },
     // Basic edge style
