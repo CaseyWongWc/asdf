@@ -247,13 +247,12 @@ export default function CytoscapeGraph() {
                     )
                   );
                   
-                  // Use unbundled-bezier curve style for parallel edges
-                  const useBezier = existingEdgeInDirection.length === 0;
-                  const curveStyle = useBezier ? 'bezier' : 'unbundled-bezier';
+                  // Always use unbundled-bezier for better control
+                  const curveStyle = 'unbundled-bezier';
                   
-                  // Create a gravity effect for parallel edges
+                  // Create stronger gravity effect for parallel edges
                   // First edge has control points above, second below
-                  const controlDistance = existingEdgeInDirection.length === 0 ? -50 : 50;
+                  const controlDistance = existingEdgeInDirection.length === 0 ? -80 : 80;
                   
                   const newEdge = cy.add({
                     group: 'edges',
@@ -273,25 +272,15 @@ export default function CytoscapeGraph() {
                     }
                   });
                   
-                  // Apply styles to the new edge
-                  if (curveStyle === 'bezier') {
-                    newEdge.style({
-                      'target-arrow-shape': 'triangle',
-                      'target-arrow-color': '#64748B',
-                      'line-style': 'solid',
-                      'curve-style': 'bezier',
-                      'control-point-step-size': 40
-                    });
-                  } else {
-                    newEdge.style({
-                      'target-arrow-shape': 'triangle',
-                      'target-arrow-color': '#64748B',
-                      'line-style': 'solid',
-                      'curve-style': 'unbundled-bezier',
-                      'control-point-distances': controlDistance,
-                      'control-point-weights': 0.5
-                    });
-                  }
+                  // Apply styles to the new edge - always using unbundled-bezier now
+                  newEdge.style({
+                    'target-arrow-shape': 'triangle',
+                    'target-arrow-color': '#64748B',
+                    'line-style': 'solid',
+                    'curve-style': 'unbundled-bezier',
+                    'control-point-distances': controlDistance,
+                    'control-point-weights': 0.5
+                  });
                   
                   console.log(`Edge created successfully, new edge count: ${cy.edges().length}`);
                   setEdgeCount(cy.edges().length);
@@ -487,11 +476,8 @@ export default function CytoscapeGraph() {
             (e.data('source') === target && e.data('target') === source)
           );
           
-          if (parallelEdges.length > 1) {
-            return 'unbundled-bezier';
-          }
-          
-          return 'bezier';
+          // For all normal edges use unbundled-bezier to allow more control
+          return parallelEdges.length > 1 ? 'unbundled-bezier' : 'unbundled-bezier';
         },
         'control-point-distances': function(ele: any) {
           if (ele.data('source') === ele.data('target')) {
@@ -511,8 +497,8 @@ export default function CytoscapeGraph() {
           // Get index of current edge
           const index = edgesBetween.indexOf(ele);
           
-          // Apply gravity effect based on index
-          return index === 0 ? -50 : 50; // First edge above, second edge below
+          // Apply stronger gravity effect based on index
+          return index === 0 ? -100 : 100; // First edge above, second edge below with more pronounced curve
         },
         'control-point-weights': 0.5
       }
