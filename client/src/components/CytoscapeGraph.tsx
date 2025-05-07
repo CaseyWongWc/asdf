@@ -298,12 +298,28 @@ export default function CytoscapeGraph() {
     },
     // Edge with description style
     {
-      selector: 'edge[description]',
+      selector: 'edge[description][descriptionPosition="above"]',
       style: {
-        'label': 'data(description)',
-        'text-margin-y': (ele: any) => {
-          return ele.data('descriptionPosition') === 'above' ? -15 : 15;
-        }
+        'source-label': 'data(description)',
+        'source-text-offset': 15,
+        'source-text-margin-y': -10,
+        'source-text-background-opacity': 0.7,
+        'source-text-background-color': '#ffffff',
+        'source-text-background-padding': 2,
+        'source-text-background-shape': 'round-rectangle'
+      }
+    },
+    // Edge with description below
+    {
+      selector: 'edge[description][descriptionPosition="below"]',
+      style: {
+        'target-label': 'data(description)',
+        'target-text-offset': 15,
+        'target-text-margin-y': 10,
+        'target-text-background-opacity': 0.7,
+        'target-text-background-color': '#ffffff',
+        'target-text-background-padding': 2,
+        'target-text-background-shape': 'round-rectangle'
       }
     },
     // Source node style
