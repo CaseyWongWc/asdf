@@ -210,9 +210,11 @@ export default function CytoscapeGraph() {
       style: {
         'width': isMobile ? 3 : 2,
         'line-color': '#64748B',
-        // Remove arrow for undirected graph
+        // Remove arrow for undirected graph by default
         'target-arrow-shape': 'none',
-        'curve-style': 'bezier',
+        'target-arrow-color': '#64748B',
+        'arrow-scale': 1.5,
+        'curve-style': 'straight',
         'label': (ele: any) => {
           // Display both label and weight if label exists
           const label = ele.data('label');
@@ -222,13 +224,16 @@ export default function CytoscapeGraph() {
           }
           return weight;
         },
-        'font-size': isMobile ? '14px' : '10px',
+        'font-size': isMobile ? '14px' : '12px',
         'text-outline-width': '2px',
         'text-outline-color': 'white',
         'text-background-opacity': 1,
-        'text-background-color': 'white',
-        'text-background-padding': isMobile ? '4px' : '2px',
-        'text-background-shape': 'roundrectangle'
+        'text-background-color': '#e2e8f0',
+        'text-background-padding': '5px',
+        'text-background-shape': 'roundrectangle',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'color': '#1a202c' // Darker text color
       }
     },
     {
@@ -290,92 +295,95 @@ export default function CytoscapeGraph() {
 
       {/* Edge Edit Dialog */}
       <Dialog open={editEdgeOpen} onOpenChange={setEditEdgeOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Edge</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[400px] p-0 bg-white rounded-md overflow-hidden">
+          <div className="p-6">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="text-lg font-semibold">Edit Edge</DialogTitle>
+            </DialogHeader>
+            
+            {currentEdge && (
+              <div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
+                    value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('source')).data('label') : ''}
+                    disabled 
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
+                    value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('target')).data('label') : ''}
+                    disabled 
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    value={edgeLabel} 
+                    onChange={(e) => setEdgeLabel(e.target.value)} 
+                    placeholder="Optional edge label"
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+                  <input 
+                    type="number" 
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    value={edgeWeight} 
+                    onChange={(e) => setEdgeWeight(Number(e.target.value))} 
+                    min={1}
+                  />
+                </div>
+                
+                <div className="mb-4 flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="directed-toggle"
+                    className="mr-2 h-4 w-4 accent-blue-600" 
+                    checked={isDirected}
+                    onChange={(e) => setIsDirected(e.target.checked)}
+                  />
+                  <label htmlFor="directed-toggle" className="text-sm font-medium text-gray-700">
+                    Directed Edge (show arrow)
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
           
-          {currentEdge && (
-            <div className="py-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">From</label>
-                <input 
-                  type="text" 
-                  className="w-full p-2 border rounded bg-gray-100"
-                  value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('source')).data('label') : ''}
-                  disabled 
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">To</label>
-                <input 
-                  type="text" 
-                  className="w-full p-2 border rounded bg-gray-100"
-                  value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('target')).data('label') : ''}
-                  disabled 
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Label</label>
-                <input 
-                  type="text" 
-                  className="w-full p-2 border rounded"
-                  value={edgeLabel} 
-                  onChange={(e) => setEdgeLabel(e.target.value)} 
-                  placeholder="Optional edge label"
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Weight</label>
-                <input 
-                  type="number" 
-                  className="w-full p-2 border rounded"
-                  value={edgeWeight} 
-                  onChange={(e) => setEdgeWeight(Number(e.target.value))} 
-                  min={1}
-                />
-              </div>
-              
-              <div className="mb-4 flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="directed-toggle"
-                  className="mr-2 h-4 w-4" 
-                  checked={isDirected}
-                  onChange={(e) => setIsDirected(e.target.checked)}
-                />
-                <label htmlFor="directed-toggle" className="text-sm font-medium">
-                  Directed Edge (show arrow)
-                </label>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter className="flex justify-between">
+          <div className="flex w-full mt-6">
             <button 
-              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              className="flex-1 p-3 bg-red-500 text-white border-t border-l border-gray-200 hover:bg-red-600 transition-colors text-sm font-medium"
               onClick={deleteEdge}
             >
               Delete
             </button>
-            <div className="space-x-2">
-              <button 
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-                onClick={() => setEditEdgeOpen(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={updateEdge}
-              >
-                Save
-              </button>
-            </div>
-          </DialogFooter>
+            
+            <button 
+              className="flex-1 p-3 bg-gray-100 text-gray-700 border-t border-l border-gray-200 hover:bg-gray-200 transition-colors text-sm font-medium"
+              onClick={() => setEditEdgeOpen(false)}
+            >
+              Cancel
+            </button>
+            
+            <button 
+              className="flex-1 p-3 bg-blue-600 text-white border-t border-l border-r border-gray-200 hover:bg-blue-700 transition-colors text-sm font-medium"
+              onClick={updateEdge}
+            >
+              Save
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </>
