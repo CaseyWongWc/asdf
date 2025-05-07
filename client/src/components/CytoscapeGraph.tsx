@@ -358,8 +358,8 @@ export default function CytoscapeGraph() {
 
       {/* Edge Edit Dialog */}
       <Dialog open={editEdgeOpen} onOpenChange={setEditEdgeOpen}>
-        <DialogContent className="sm:max-w-[400px] p-0 bg-white rounded-md overflow-hidden">
-          <div className="p-6">
+        <DialogContent className="sm:max-w-[400px] p-0 bg-white rounded-md overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="p-4 md:p-6">
             <DialogHeader className="mb-4">
               <DialogTitle className="text-lg font-semibold">Edit Edge</DialogTitle>
             </DialogHeader>
@@ -367,30 +367,30 @@ export default function CytoscapeGraph() {
             {currentEdge && (
               <div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                  <label className="block text-base font-medium text-gray-700 mb-2">From</label>
                   <input 
                     type="text" 
-                    className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
+                    className="w-full p-3 border border-gray-300 rounded-md bg-gray-100 text-base"
                     value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('source')).data('label') : ''}
                     disabled 
                   />
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                  <label className="block text-base font-medium text-gray-700 mb-2">To</label>
                   <input 
                     type="text" 
-                    className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
+                    className="w-full p-3 border border-gray-300 rounded-md bg-gray-100 text-base"
                     value={currentEdge ? cyRef.current?.getElementById(currentEdge.data('target')).data('label') : ''}
                     disabled 
                   />
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                  <label className="block text-base font-medium text-gray-700 mb-2">Label</label>
                   <input 
                     type="text" 
-                    className="w-full p-2 border border-gray-300 rounded-md"
+                    className="w-full p-3 border border-gray-300 rounded-md text-base"
                     value={edgeLabel} 
                     onChange={(e) => setEdgeLabel(e.target.value)} 
                     placeholder="Optional edge label"
@@ -398,24 +398,24 @@ export default function CytoscapeGraph() {
                   />
                 </div>
                 
-                <div className="mb-4 flex items-center">
+                <div className="mb-4 flex items-center py-1">
                   <input 
                     type="checkbox" 
                     id="weightless-toggle"
-                    className="mr-2 h-4 w-4 accent-blue-600" 
+                    className="mr-3 h-5 w-5 accent-blue-600" 
                     checked={!hasWeight}
                     onChange={(e) => setHasWeight(!e.target.checked)}
                   />
-                  <label htmlFor="weightless-toggle" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="weightless-toggle" className="text-base font-medium text-gray-700">
                     Weightless Edge (no number)
                   </label>
                 </div>
                 
                 <div className={`mb-4 ${!hasWeight ? 'opacity-50' : ''}`}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+                  <label className="block text-base font-medium text-gray-700 mb-2">Weight</label>
                   <input 
                     type="number" 
-                    className="w-full p-2 border border-gray-300 rounded-md"
+                    className="w-full p-3 border border-gray-300 rounded-md text-base"
                     value={edgeWeight} 
                     onChange={(e) => setEdgeWeight(Number(e.target.value))} 
                     min={1}
@@ -423,15 +423,15 @@ export default function CytoscapeGraph() {
                   />
                 </div>
                 
-                <div className="mb-4 flex items-center">
+                <div className="mb-4 flex items-center py-1">
                   <input 
                     type="checkbox" 
                     id="directed-toggle"
-                    className="mr-2 h-4 w-4 accent-blue-600" 
+                    className="mr-3 h-5 w-5 accent-blue-600" 
                     checked={isDirected}
                     onChange={(e) => setIsDirected(e.target.checked)}
                   />
-                  <label htmlFor="directed-toggle" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="directed-toggle" className="text-base font-medium text-gray-700">
                     Directed Edge (show arrow)
                   </label>
                 </div>
@@ -439,13 +439,13 @@ export default function CytoscapeGraph() {
                 <div className="mb-4">
                   <button
                     type="button"
-                    className="w-full p-2 border border-orange-400 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 flex items-center justify-center"
+                    className="w-full py-3 px-2 border border-orange-400 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 flex items-center justify-center"
                     onClick={() => {
                       reverseEdge();
                       // Keep the dialog open to show the change
                     }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                     </svg>
                     Reverse Edge Direction
@@ -455,23 +455,24 @@ export default function CytoscapeGraph() {
             )}
           </div>
           
-          <div className="flex w-full mt-6">
+          <div className="flex flex-col md:flex-row w-full mt-6 sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+            {/* Stack buttons vertically on mobile, horizontally on larger screens */}
             <button 
-              className="flex-1 p-3 bg-red-500 text-white border-t border-l border-gray-200 hover:bg-red-600 transition-colors text-sm font-medium"
+              className="w-full py-5 px-4 bg-red-500 text-white border-b md:border-b-0 md:border-r hover:bg-red-600 transition-colors font-medium text-base"
               onClick={deleteEdge}
             >
               Delete
             </button>
             
             <button 
-              className="flex-1 p-3 bg-gray-100 text-gray-700 border-t border-l border-gray-200 hover:bg-gray-200 transition-colors text-sm font-medium"
+              className="w-full py-5 px-4 bg-gray-100 text-gray-700 border-b md:border-b-0 md:border-r hover:bg-gray-200 transition-colors font-medium text-base"
               onClick={() => setEditEdgeOpen(false)}
             >
               Cancel
             </button>
             
             <button 
-              className="flex-1 p-3 bg-blue-600 text-white border-t border-l border-r border-gray-200 hover:bg-blue-700 transition-colors text-sm font-medium"
+              className="w-full py-5 px-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium text-base"
               onClick={updateEdge}
             >
               Save
