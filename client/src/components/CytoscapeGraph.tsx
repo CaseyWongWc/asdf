@@ -302,11 +302,7 @@ export default function CytoscapeGraph() {
       style: {
         'source-label': 'data(description)',
         'source-text-offset': 15,
-        'source-text-margin-y': -10,
-        'source-text-background-opacity': 0.7,
-        'source-text-background-color': '#ffffff',
-        'source-text-background-padding': 2,
-        'source-text-background-shape': 'round-rectangle'
+        'source-text-margin-y': -10
       }
     },
     // Edge with description below
@@ -315,11 +311,7 @@ export default function CytoscapeGraph() {
       style: {
         'target-label': 'data(description)',
         'target-text-offset': 15,
-        'target-text-margin-y': 10,
-        'target-text-background-opacity': 0.7,
-        'target-text-background-color': '#ffffff',
-        'target-text-background-padding': 2,
-        'target-text-background-shape': 'round-rectangle'
+        'target-text-margin-y': 10
       }
     },
     // Source node style
