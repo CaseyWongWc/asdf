@@ -277,12 +277,13 @@ export default function CytoscapeGraph() {
                         edge.data("target") === nodeId,
                     );
 
-                  // Use the selected edge display style
-                  const curveStyle =
-                    edgeDisplayStyle === "curved"
-                      ? "unbundled-bezier"
-                      : "straight";
-
+                  // Check if there's an edge in the opposite direction (bidirectional relationship)
+                  const oppositeEdge = cy.edges(`[source = "${nodeId}"][target = "${sourceNode}"]`);
+                  const hasBidirectional = oppositeEdge.length > 0;
+                  
+                  // Automatically use curved style for bidirectional edges, straight for one-way
+                  const curveStyle = hasBidirectional ? "unbundled-bezier" : "straight";
+                  
                   // Create stronger gravity effect for parallel edges if using curved style
                   // First edge has control points above, second below
                   const controlDistance =
@@ -332,6 +333,16 @@ export default function CytoscapeGraph() {
                   }
 
                   newEdge.style(styleObj);
+
+                  // If this created a bidirectional relationship, update the opposite edge too
+                  if (hasBidirectional) {
+                    // Find the opposite direction edge and make it curved too
+                    oppositeEdge.style({
+                      "curve-style": "unbundled-bezier",
+                      "control-point-distances": controlDistance * -1, // Opposite curve
+                      "control-point-weights": 0.5,
+                    });
+                  }
 
                   console.log(
                     `Edge created successfully, new edge count: ${cy.edges().length}`,
@@ -847,82 +858,7 @@ export default function CytoscapeGraph() {
         layout={{ name: "preset" }} // Use preset layout to respect node positions
       />
 
-      {/* Edge Style Toggle Control */}
-      {mode === "editor" && (
-        <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md z-10 flex items-center gap-2 border border-gray-200">
-          <span className="text-sm font-medium whitespace-nowrap">
-            Edge Style:
-          </span>
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant={edgeDisplayStyle === "curved" ? "default" : "outline"}
-              onClick={() => {
-                setEdgeDisplayStyle("curved");
-                setStatusMessage("Using curved edges with gravity effect");
-
-                // Apply to existing edges
-                if (cyRef.current) {
-                  cyRef.current.edges().forEach((edge: any) => {
-                    if (edge.data("source") === edge.data("target")) {
-                      // Don't change self-loops
-                      return;
-                    }
-
-                    // Check for bidirectional edges (edges going in both directions)
-                    const source = edge.data("source");
-                    const target = edge.data("target");
-                    const hasBidirectional = cyRef.current.edges(`[source = "${target}"][target = "${source}"]`).length > 0;
-                    
-                    // Only curve if there's a matching edge in the opposite direction
-                    if (hasBidirectional) {
-                      const edgeNumber = edge.data("edgeNumber") || 1;
-                      const controlDistance = edgeNumber === 1 ? -80 : 80;
-                      
-                      edge.style({
-                        "curve-style": "unbundled-bezier",
-                        "control-point-distances": controlDistance,
-                        "control-point-weights": 0.5,
-                      });
-                    } else {
-                      // Keep single edges straight
-                      edge.style({
-                        "curve-style": "straight",
-                      });
-                    }
-                  });
-                }
-              }}
-            >
-              Curved
-            </Button>
-            <Button
-              size="sm"
-              variant={edgeDisplayStyle === "straight" ? "default" : "outline"}
-              onClick={() => {
-                setEdgeDisplayStyle("straight");
-                setStatusMessage("Using straight edges");
-
-                // Apply to existing edges
-                if (cyRef.current) {
-                  cyRef.current.edges().forEach((edge: any) => {
-                    if (edge.data("source") === edge.data("target")) {
-                      // Don't change self-loops
-                      return;
-                    }
-
-                    edge.style({
-                      "curve-style": "straight",
-                    });
-                  });
-                }
-              }}
-            >
-              Straight
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* We've removed the manual Edge Style toggle since it's now automatic */}
 
       {/* Edge Edit Dialog */}
       <Dialog open={editEdgeOpen} onOpenChange={setEditEdgeOpen}>
