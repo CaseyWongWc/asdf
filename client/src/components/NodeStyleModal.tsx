@@ -42,7 +42,7 @@ interface NodeStyleModalProps {
 }
 
 export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyleModalProps) {
-  const { setStatusMessage } = useContext(GraphContext);
+  const { setStatusMessage, setNodeCount, setEdgeCount } = useContext(GraphContext);
   const isMobile = useIsMobile();
   
   // Node style state
@@ -130,6 +130,27 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
     setTextColor('#FFFFFF');
     
     setStatusMessage('Node style reset to default');
+  };
+  
+  const deleteNode = () => {
+    if (!nodeId || !window.cy) return;
+    
+    const node = window.cy.getElementById(nodeId);
+    if (!node) return;
+    
+    const nodeLabel = node.data('label');
+    
+    // Remove the node and its connected edges
+    node.remove();
+    
+    // Update counts
+    if (window.cy) {
+      setNodeCount(window.cy.nodes().length);
+      setEdgeCount(window.cy.edges().length);
+    }
+    
+    setStatusMessage(`Node "${nodeLabel}" deleted`);
+    onOpenChange(false);
   };
 
   return (
@@ -320,17 +341,26 @@ export default function NodeStyleModal({ open, onOpenChange, nodeId }: NodeStyle
           </div>
         </div>
         
-        <DialogFooter className="p-4 md:p-6 border-t bg-gray-50">
+        <DialogFooter className="p-4 md:p-6 border-t bg-gray-50 flex justify-between">
           <Button 
-            variant="outline" 
-            onClick={resetStyles}
-            className="mr-2"
+            variant="destructive" 
+            onClick={deleteNode}
           >
-            Reset to Default
+            Delete Node
           </Button>
-          <Button onClick={applyStyles}>
-            Apply Styles
-          </Button>
+          
+          <div>
+            <Button 
+              variant="outline" 
+              onClick={resetStyles}
+              className="mr-2"
+            >
+              Reset to Default
+            </Button>
+            <Button onClick={applyStyles}>
+              Apply Styles
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

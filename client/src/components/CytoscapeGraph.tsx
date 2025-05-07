@@ -122,7 +122,7 @@ export default function CytoscapeGraph() {
         
         // Track the last click for double-click detection
         let lastClickTime = 0;
-        let lastClickNodeId = null;
+        let lastClickNodeId: string | null = null;
         const doubleClickDelay = 300; // milliseconds
         
         // Combined single/double click handler for node actions
@@ -298,26 +298,52 @@ export default function CytoscapeGraph() {
           }
         });
         
-        // Right-click handler for element deletion
+        // Right-click handler for element editing
         cy.on('cxttap', 'node, edge', function(event: any) {
           const ele = event.target;
-          const type = ele.isNode() ? 'Node' : 'Edge';
-          const label = ele.isNode() 
-            ? ele.data('label') 
-            : `edge from ${cy.getElementById(ele.data('source')).data('label')} to ${cy.getElementById(ele.data('target')).data('label')}`;
           
-          // If this is the source node, deselect it
-          if (sourceNode && sourceNode === ele.id()) {
-            setSourceNode(null);
+          if (ele.isNode()) {
+            // Open node style dialog for nodes
+            setSelectedNodeId(ele.id());
+            setNodeStyleOpen(true);
+            setStatusMessage(`Editing style for "${ele.data('label')}"`);
+            
+            // If this was the source node, deselect it
+            if (sourceNode && sourceNode === ele.id()) {
+              ele.removeClass('source-node');
+              setSourceNode(null);
+            }
+          } else {
+            // Open edge edit dialog for edges
+            setCurrentEdge(ele);
+            
+            // Check if the edge has a weight
+            const weight = ele.data('weight');
+            const isWeightless = weight === null || weight === undefined;
+            
+            setEdgeWeight(isWeightless ? 1 : weight);
+            setHasWeight(!isWeightless);
+            setEdgeLabel(ele.data('label') || '');
+            
+            // Get the description and position if they exist
+            setEdgeDescription(ele.data('description') || '');
+            setDescriptionPosition(ele.data('descriptionPosition') || 'above');
+            
+            // Check if the edge has an arrow (is directed)
+            setIsDirected(ele.style('target-arrow-shape') !== 'none');
+            
+            // Determine the edge style
+            const lineStyle = ele.style('line-style') || 'solid';
+            setEdgeStyle(lineStyle as 'solid' | 'dashed' | 'dotted');
+            
+            // Get curve style and curvature
+            const curveStyle = ele.style('curve-style') || 'bezier';
+            setEdgeCurve(curveStyle as 'straight' | 'bezier');
+            setEdgeCurvature(parseInt(ele.style('control-point-step-size') || '40', 10));
+            
+            setEditEdgeOpen(true);
+            setStatusMessage(`Editing edge properties`);
           }
-          
-          // Remove the element
-          ele.remove();
-          
-          // Update counts
-          setNodeCount(cy.nodes().length);
-          setEdgeCount(cy.edges().length);
-          setStatusMessage(`${type} ${label} deleted`);
         });
       } else {
         // ALGORITHM MODE HANDLERS
