@@ -14,7 +14,7 @@ function ConsolePage() {
       <div className="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center">
         <h1 className="text-xl font-bold">GPT Bash Console</h1>
         <Link href="/">
-          <a className="text-blue-400 hover:underline">Back to Graph Editor</a>
+          <button className="text-blue-400 hover:underline">Back to Graph Editor</button>
         </Link>
       </div>
       <div className="flex-1 p-4">
