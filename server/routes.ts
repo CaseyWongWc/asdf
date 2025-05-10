@@ -66,8 +66,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt is required" });
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
+      });
+
+      const message = completion.choices[0].message?.content;
+      if (!message)
+        return res.status(500).json({ message: "Invalid GPT response" });
+
+      res.json({ response: message });
+    } catch (error: any) {
+      console.error("OpenAI API error:", error);
+      res
+        .status(500)
+        .json({ message: error.message || "Error calling OpenAI API" });
+    }
+  });
+  
+  app.post("/api/bash", async (req, res) => {
+    try {
+      const { command } = req.body;
+      if (!command)
+        return res.status(400).json({ message: "Command is required" });
+
+      // Construct a prompt that asks GPT to explain the bash command
+      const prompt = `You are a bash command processor. 
+The user has input this command: "${command}"
+
+Please respond with:
+1. A brief explanation of what this command does
+2. Any potential risks or warnings about executing this command
+3. The expected output, formatted clearly
+
+Format your response in a clear, readable way.`;
+
+      const completion = await openai.chat.completions.create({
+        // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: "gpt-4o",
+        messages: [{ role: "system", content: "You are a helpful bash command assistant." }, 
+                  { role: "user", content: prompt }],
       });
 
       const message = completion.choices[0].message?.content;

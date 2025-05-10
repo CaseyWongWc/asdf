@@ -2,8 +2,9 @@ import { useContext } from "react";
 import { GraphContext } from "@/contexts/GraphContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, HelpCircle, RotateCcw, Smartphone, Laptop, CheckCircle } from "lucide-react";
+import { Pencil, HelpCircle, RotateCcw, Smartphone, Laptop, CheckCircle, Terminal } from "lucide-react";
 import { useIsMobile, useMobileContext } from "@/hooks/use-mobile";
+import { Link } from "wouter";
 
 export default function Header() {
   const { 
@@ -85,6 +86,16 @@ export default function Header() {
             <RotateCcw className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1.5`} />
             Reset
           </Button>
+          <Link href="/console">
+            <Button 
+              variant="outline" 
+              size={isMobile ? "default" : "sm"}
+              className={isMobile ? "flex-1 mr-2" : "h-9"}
+            >
+              <Terminal className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} mr-1.5`} />
+              Console
+            </Button>
+          </Link>
           <Button 
             variant="ghost" 
             size={isMobile ? "icon" : "sm"}
