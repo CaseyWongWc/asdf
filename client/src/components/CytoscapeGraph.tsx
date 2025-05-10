@@ -2,7 +2,7 @@ import React, { useRef, useContext, useEffect, useMemo } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
 import { GraphContext } from "../contexts/GraphContext";
 import { useIsMobile } from "../hooks/use-mobile";
-import Lifeline from "./Lifeline";
+import Lifeline from "./lifeline";
 
 declare global {
   interface Window {
