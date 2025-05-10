@@ -3,7 +3,7 @@ import { useState, useContext } from "react";
 // import SimpleGraph from "../components/simple-graph";
 import CytoscapeGraph from "../components/CytoscapeGraph";
 import Header from "../components/Header";
-import InstructionBar from "../components/InstructionBar";
+import MainMenuBar from "../components/MainMenuBar";
 import StatusBar from "../components/StatusBar";
 import AlgorithmPanel from "../components/AlgorithmPanel";
 import { GraphProvider, GraphContext } from "../contexts/GraphContext";
@@ -22,8 +22,8 @@ function HomeContent() {
     <div className="flex flex-col h-screen">
       <Header />
 
-      {/* Show instruction bar only in editor mode */}
-      {mode === 'editor' && <InstructionBar />}
+      {/* Show menu bar in both modes */}
+      <MainMenuBar />
 
       {/* Layout changes based on mode */}
       <div className={`flex ${mode === 'algorithm' ? 'flex-row' : 'flex-col'} flex-1`}>
