@@ -3,6 +3,7 @@ import CytoscapeComponent from "react-cytoscapejs";
 import cytoscape from "cytoscape";
 import { GraphContext } from "@/contexts/GraphContext";
 import ZoomControls from "./ZoomControls";
+import EditingToolbar from "./EditingToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function GraphCanvas() {
@@ -269,6 +270,7 @@ export default function GraphCanvas() {
         }}
         wheelSensitivity={0.3}
       />
+      <EditingToolbar />
       <ZoomControls cyRef={cyRef} />
     </main>
   );
