@@ -6,6 +6,7 @@ import StatusBar from "./StatusBar";
 import NodeEditModal from "./NodeEditModal";
 import EdgeEditModal from "./EdgeEditModal";
 import HelpModal from "./HelpModal";
+import ZoomControls from "./ZoomControls";
 import { GraphContext } from "@/contexts/GraphContext";
 
 export default function GraphEditor() {

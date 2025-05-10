@@ -277,11 +277,42 @@ export default function MainMenuBar() {
           </MenubarMenu>
           
           <MenubarMenu>
+            <MenubarTrigger className="font-medium">Edit</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem onClick={() => handleModeChange('draw')}>
+                <PenTool className="h-4 w-4 mr-2" />
+                Draw Mode
+              </MenubarItem>
+              <MenubarItem onClick={() => handleModeChange('edit')}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Mode
+              </MenubarItem>
+              <MenubarItem onClick={() => handleModeChange('delete')}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Mode
+              </MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          <MenubarMenu>
             <MenubarTrigger className="font-medium">Tools</MenubarTrigger>
             <MenubarContent>
               <MenubarItem onClick={handleCheckParity}>
                 <Layers className="h-4 w-4 mr-2" />
                 Check Parity
+              </MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem onClick={handleZoomIn}>
+                <ZoomIn className="h-4 w-4 mr-2" />
+                Zoom In
+              </MenubarItem>
+              <MenubarItem onClick={handleZoomOut}>
+                <ZoomOut className="h-4 w-4 mr-2" />
+                Zoom Out
+              </MenubarItem>
+              <MenubarItem onClick={handleResetView}>
+                <Maximize className="h-4 w-4 mr-2" />
+                Reset View
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
