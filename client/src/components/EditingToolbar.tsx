@@ -10,47 +10,42 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
-  MousePointer, 
-  Circle, 
-  ArrowUpRight, 
+  Pencil, 
+  PenLine, 
   Trash2, 
-  Undo2, 
-  Redo2,
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Maximize,
   PanelLeftClose,
   PanelLeftOpen,
-  Maximize,
-  Minimize,
-  Copy,
-  Settings
+  Settings,
+  Info,
+  Copy
 } from "lucide-react";
 
-type EditingMode = "select" | "add-node" | "add-edge" | "delete";
+type EditingMode = "draw" | "edit" | "delete";
 
 export default function EditingToolbar() {
   const isMobile = useIsMobile();
   const { resetGraph, setStatusMessage } = useContext(GraphContext);
-  const [currentMode, setCurrentMode] = useState<EditingMode>("select");
+  const [currentMode, setCurrentMode] = useState<EditingMode>("draw");
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [showHelpOverlay, setShowHelpOverlay] = useState(false);
 
   const handleModeChange = (mode: EditingMode) => {
     setCurrentMode(mode);
     
     // Update status message based on selected mode
     switch(mode) {
-      case "select":
-        setStatusMessage("Select and move nodes");
+      case "draw":
+        setStatusMessage("Draw Mode: Click canvas to add nodes, click nodes to connect with edges");
         break;
-      case "add-node":
-        setStatusMessage("Click on canvas to add a new node");
-        break;
-      case "add-edge":
-        setStatusMessage("Click source node then target node to create an edge");
+      case "edit":
+        setStatusMessage("Edit Mode: Click on nodes or edges to edit labels and weights");
         break;
       case "delete":
-        setStatusMessage("Click any element to delete it");
+        setStatusMessage("Delete Mode: Click on nodes or edges to delete them");
         break;
     }
     
@@ -58,6 +53,9 @@ export default function EditingToolbar() {
     if (window.cy) {
       // Reset any existing modes/handlers
       window.cy.elements().unselect();
+      
+      // Store the mode in a data attribute that Cytoscape event handlers can check
+      window.cy.data('editingMode', mode);
     }
   };
   
@@ -91,30 +89,21 @@ export default function EditingToolbar() {
     return (
       <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-full border border-gray-200 shadow-md p-1 flex items-center space-x-1">
         <Button 
-          variant={currentMode === "select" ? "default" : "ghost"} 
+          variant={currentMode === "draw" ? "default" : "ghost"} 
           size="icon"
           className="h-9 w-9 rounded-full"
-          onClick={() => handleModeChange("select")}
+          onClick={() => handleModeChange("draw")}
         >
-          <MousePointer className="h-4 w-4" />
+          <PenLine className="h-4 w-4" />
         </Button>
         
         <Button 
-          variant={currentMode === "add-node" ? "default" : "ghost"} 
+          variant={currentMode === "edit" ? "default" : "ghost"} 
           size="icon"
           className="h-9 w-9 rounded-full"
-          onClick={() => handleModeChange("add-node")}
+          onClick={() => handleModeChange("edit")}
         >
-          <Circle className="h-4 w-4" />
-        </Button>
-        
-        <Button 
-          variant={currentMode === "add-edge" ? "default" : "ghost"} 
-          size="icon"
-          className="h-9 w-9 rounded-full"
-          onClick={() => handleModeChange("add-edge")}
-        >
-          <ArrowUpRight className="h-4 w-4" />
+          <Pencil className="h-4 w-4" />
         </Button>
         
         <Button 
@@ -124,6 +113,15 @@ export default function EditingToolbar() {
           onClick={() => handleModeChange("delete")}
         >
           <Trash2 className="h-4 w-4" />
+        </Button>
+        
+        <Button 
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full"
+          onClick={() => setShowHelpOverlay(!showHelpOverlay)}
+        >
+          <Info className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -137,48 +135,38 @@ export default function EditingToolbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                variant={currentMode === "select" ? "default" : "ghost"} 
+                variant={currentMode === "draw" ? "default" : "ghost"} 
                 size="icon"
                 className="h-9 w-9"
-                onClick={() => handleModeChange("select")}
+                onClick={() => handleModeChange("draw")}
               >
-                <MousePointer className="h-4 w-4" />
+                <PenLine className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Select Mode</p>
+              <div className="max-w-xs">
+                <p className="font-semibold">Draw Mode</p>
+                <p className="text-xs mt-1">Click canvas to add nodes. Click nodes to connect with edges.</p>
+              </div>
             </TooltipContent>
           </Tooltip>
           
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                variant={currentMode === "add-node" ? "default" : "ghost"} 
+                variant={currentMode === "edit" ? "default" : "ghost"} 
                 size="icon"
                 className="h-9 w-9"
-                onClick={() => handleModeChange("add-node")}
+                onClick={() => handleModeChange("edit")}
               >
-                <Circle className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Add Node</p>
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant={currentMode === "add-edge" ? "default" : "ghost"} 
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => handleModeChange("add-edge")}
-              >
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Add Edge</p>
+              <div className="max-w-xs">
+                <p className="font-semibold">Edit Mode</p>
+                <p className="text-xs mt-1">Click on nodes or edges to edit labels and weights.</p>
+              </div>
             </TooltipContent>
           </Tooltip>
           
@@ -194,7 +182,10 @@ export default function EditingToolbar() {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Delete Mode</p>
+              <div className="max-w-xs">
+                <p className="font-semibold">Delete Mode</p>
+                <p className="text-xs mt-1">Click on nodes or edges to delete them.</p>
+              </div>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -276,13 +267,13 @@ export default function EditingToolbar() {
                 variant="ghost" 
                 size="icon"
                 className="h-9 w-9"
-                onClick={handleTogglePanel}
+                onClick={() => setShowHelpOverlay(!showHelpOverlay)}
               >
-                {isPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                <Info className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>{isPanelOpen ? "Hide Properties" : "Show Properties"}</p>
+              <p>Help</p>
             </TooltipContent>
           </Tooltip>
           
@@ -302,6 +293,46 @@ export default function EditingToolbar() {
           </Tooltip>
         </div>
       </div>
+      
+      {/* Help Overlay with Mode Instructions */}
+      {showHelpOverlay && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowHelpOverlay(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold mb-4">Graph Editor Modes</h2>
+            
+            <div className="mb-4">
+              <h3 className="font-bold flex items-center"><PenLine className="h-4 w-4 mr-2" /> Draw Mode</h3>
+              <p className="text-sm mt-1">
+                • Click anywhere on the canvas to create a new node.<br />
+                • Click on a node to start drawing an edge.<br />
+                • To cancel the edge, click on empty space.<br />
+                • To complete the edge, click on another node.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="font-bold flex items-center"><Pencil className="h-4 w-4 mr-2" /> Edit Mode</h3>
+              <p className="text-sm mt-1">
+                • Click on a node label to edit it.<br />
+                • Click on an edge to edit its weight.<br />
+                • Click elsewhere or press Enter to finish editing.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="font-bold flex items-center"><Trash2 className="h-4 w-4 mr-2" /> Delete Mode</h3>
+              <p className="text-sm mt-1">
+                • Click on a node to delete it and all its connected edges.<br />
+                • Click on an edge to delete just that connection.
+              </p>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button onClick={() => setShowHelpOverlay(false)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </TooltipProvider>
   );
 }
