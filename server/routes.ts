@@ -4,6 +4,14 @@ import { storage } from "./storage";
 import { insertGraphSchema } from "@shared/schema";
 import { z } from "zod";
 
+
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Graph routes
   app.post('/api/graphs', async (req, res) => {
@@ -49,6 +57,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ message: 'Error updating graph' });
       }
     }
+
+  app.post('/api/ask', async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: prompt }],
+      });
+      res.json({ response: completion.choices[0].message.content });
+    } catch (error) {
+      res.status(500).json({ message: 'Error calling OpenAI API' });
+    }
+  });
+
+
   });
 
   app.delete('/api/graphs/:id', async (req, res) => {

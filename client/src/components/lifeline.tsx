@@ -1,11 +1,5 @@
 
 import React, { useState } from "react";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Only use this for development
-});
 
 export default function Lifeline() {
   const [prompt, setPrompt] = useState("");
@@ -15,11 +9,20 @@ export default function Lifeline() {
   async function askGPT() {
     setLoading(true);
     try {
-      const res = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prompt })
       });
-      setResponse(res.choices[0].message.content || "");
+      
+      if (!res.ok) {
+        throw new Error('Failed to get response');
+      }
+      
+      const data = await res.json();
+      setResponse(data.response);
     } catch (err) {
       setResponse("Something went wrong: " + err.message);
     } finally {
