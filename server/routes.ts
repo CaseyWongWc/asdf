@@ -65,6 +65,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Prompt is required' });
       }
 
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ message: 'OpenAI API key not configured' });
+      }
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
@@ -76,8 +80,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ response: completion.choices[0].message.content });
     } catch (error: any) {
-      const message = error.message || 'Error calling OpenAI API';
-      res.status(500).json({ message });
+      console.error('OpenAI API error:', error);
+      res.status(500).json({ message: error.message || 'Error calling OpenAI API' });
     }
   });
 
