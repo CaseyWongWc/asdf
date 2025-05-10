@@ -32,6 +32,10 @@ import {
   Info,
   Settings,
   Layers,
+  Pencil,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
