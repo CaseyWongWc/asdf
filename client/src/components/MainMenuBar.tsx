@@ -192,17 +192,6 @@ export default function MainMenuBar() {
           </div>
           
           <div className="flex items-center space-x-1">
-            <div className="text-xs px-2 py-1 rounded-md bg-gray-100 border border-gray-200">
-              {mode === 'editor' ? (
-                <>
-                  <span><strong>Tap:</strong> Add node</span>
-                </>
-              ) : (
-                <>
-                  <span><strong>Alg:</strong> Select</span>
-                </>
-              )}
-            </div>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -309,29 +298,15 @@ export default function MainMenuBar() {
         </Menubar>
         
         <div className="flex items-center py-1 pr-4">
-          <div className="bg-gray-100 px-3 py-1 rounded-md border border-gray-200 text-sm text-gray-700 flex items-center space-x-2">
-            {mode === 'editor' ? (
-              <>
-                <div className="flex items-center space-x-1">
-                  <MousePointer className="h-3 w-3" />
-                  <span><strong>Click:</strong> Add</span>
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <span><strong>+Drag:</strong> Move</span>
-                <Separator orientation="vertical" className="h-4" />
-                <span><strong>2-Click:</strong> Connect</span>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center space-x-1">
-                  <MousePointer className="h-3 w-3" />
-                  <span><strong>Click:</strong> Select</span>
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <span><strong>Path:</strong> Find route</span>
-              </>
-            )}
-          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8" 
+            onClick={handleShowHelp}
+            aria-label="Help"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>
