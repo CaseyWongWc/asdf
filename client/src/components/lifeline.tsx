@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 
 export default function Lifeline() {
@@ -9,22 +8,25 @@ export default function Lifeline() {
   async function askGPT() {
     setLoading(true);
     try {
-      const res = await fetch('/api/ask', {
-        method: 'POST',
+      const res = await fetch("/api/ask", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt }),
       });
-      
+
       if (!res.ok) {
-        throw new Error('Failed to get response');
+        throw new Error("Failed to get response");
       }
-      
+
       const data = await res.json();
       setResponse(data.response);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'An unexpected error occurred';
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "An unexpected error occurred";
       setResponse("Error: " + errorMessage);
     } finally {
       setLoading(false);
