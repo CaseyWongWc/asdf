@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GraphContext } from "@/contexts/GraphContext";
 import {
@@ -36,6 +36,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +44,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function MainMenuBar() {
   const isMobile = useIsMobile();
+  const cyRef = useRef<any>(null);
   const { 
     mode, 
     setMode, 
@@ -56,10 +58,37 @@ export default function MainMenuBar() {
   } = useContext(GraphContext);
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  useEffect(() => {
+    if (window.cy) {
+      cyRef.current = window.cy;
+    }
+  }, []);
 
-  const handleModeChange = (newMode: 'editor' | 'algorithm') => {
+  const handleModeChange = (newMode: GraphMode) => {
     setMode(newMode);
-    setStatusMessage(`Switched to ${newMode === 'editor' ? 'Graph Editor' : 'Algorithm'} Mode`);
+    
+    let message = "";
+    switch(newMode) {
+      case 'editor':
+        message = "Switched to Graph Editor Mode";
+        break;
+      case 'algorithm':
+        message = "Switched to Algorithm Mode";
+        break;
+      case 'draw':
+        message = "Draw Mode: Click canvas to add nodes, click nodes to connect with edges";
+        break;
+      case 'edit':
+        message = "Edit Mode: Click on nodes or edges to edit labels and weights";
+        break;
+      case 'delete':
+        message = "Delete Mode: Click on nodes or edges to delete them";
+        break;
+    }
+    
+    setStatusMessage(message);
+    
     if (mobileMenuOpen) setMobileMenuOpen(false);
   };
 
@@ -67,6 +96,28 @@ export default function MainMenuBar() {
     setEdgeStyle(newStyle);
     setStatusMessage(`Edge style set to ${newStyle}`);
     if (mobileMenuOpen) setMobileMenuOpen(false);
+  };
+  
+  // Zoom control functions
+  const handleZoomIn = () => {
+    if (window.cy) {
+      window.cy.zoom(window.cy.zoom() * 1.2);
+      window.cy.center();
+    }
+  };
+  
+  const handleZoomOut = () => {
+    if (window.cy) {
+      window.cy.zoom(window.cy.zoom() / 1.2);
+      window.cy.center();
+    }
+  };
+  
+  const handleResetView = () => {
+    if (window.cy) {
+      window.cy.fit();
+      window.cy.center();
+    }
   };
 
   const handleShowHelp = () => {
@@ -283,15 +334,36 @@ export default function MainMenuBar() {
           <MenubarMenu>
             <MenubarTrigger className="font-medium">Edit</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => handleModeChange('draw')}>
+              <MenubarItem onClick={() => {
+                setMode('draw');
+                setStatusMessage("Draw Mode: Click canvas to add nodes, click nodes to connect with edges");
+                if (window.cy) {
+                  window.cy.elements().unselect();
+                  window.cy.data('editingMode', 'draw');
+                }
+              }}>
                 <PenTool className="h-4 w-4 mr-2" />
                 Draw Mode
               </MenubarItem>
-              <MenubarItem onClick={() => handleModeChange('edit')}>
+              <MenubarItem onClick={() => {
+                setMode('edit');
+                setStatusMessage("Edit Mode: Click on nodes or edges to edit labels and weights");
+                if (window.cy) {
+                  window.cy.elements().unselect();
+                  window.cy.data('editingMode', 'edit');
+                }
+              }}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Mode
               </MenubarItem>
-              <MenubarItem onClick={() => handleModeChange('delete')}>
+              <MenubarItem onClick={() => {
+                setMode('delete');
+                setStatusMessage("Delete Mode: Click on nodes or edges to delete them");
+                if (window.cy) {
+                  window.cy.elements().unselect();
+                  window.cy.data('editingMode', 'delete');
+                }
+              }}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Mode
               </MenubarItem>

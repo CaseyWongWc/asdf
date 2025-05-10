@@ -7,7 +7,7 @@ declare global {
   }
 }
 
-export type GraphMode = 'editor' | 'algorithm';
+export type GraphMode = 'editor' | 'algorithm' | 'draw' | 'edit' | 'delete';
 export type EdgeStyle = 'curved' | 'straight';
 
 export interface GraphContextProps {
