@@ -23,8 +23,9 @@ export default function Lifeline() {
       
       const data = await res.json();
       setResponse(data.response);
-    } catch (err) {
-      setResponse("Something went wrong: " + err.message);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'An unexpected error occurred';
+      setResponse("Error: " + errorMessage);
     } finally {
       setLoading(false);
     }

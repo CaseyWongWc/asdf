@@ -61,13 +61,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ask', async (req, res) => {
     try {
       const { prompt } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ message: 'Prompt is required' });
+      }
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
       });
+
+      if (!completion.choices?.[0]?.message?.content) {
+        return res.status(500).json({ message: 'Invalid response from OpenAI' });
+      }
+
       res.json({ response: completion.choices[0].message.content });
-    } catch (error) {
-      res.status(500).json({ message: 'Error calling OpenAI API' });
+    } catch (error: any) {
+      const message = error.message || 'Error calling OpenAI API';
+      res.status(500).json({ message });
     }
   });
 
