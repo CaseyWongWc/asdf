@@ -102,60 +102,102 @@ export default function GraphCanvas() {
 
       // We'll try the cytoscape tap event which is more reliable than click
       cy.on('tap', function(event) {
-        console.log('Canvas tap event:', event.target === cy);
+        const currentMode = cy.data('editingMode') || 'draw';
+        console.log('Canvas tap event, mode:', currentMode, event.target === cy);
         
         // Only handle taps on the background (not on nodes/edges)
         if (event.target === cy) {
           console.log('Background tap detected', event.position);
           
-          // If a source node is selected, deselect it
-          if (sourceNode) {
-            cy.getElementById(sourceNode).removeClass('source-node');
-            setSourceNode(null);
-            setStatusMessage('Source node deselected');
-            return;
+          // Draw mode - create new nodes on canvas click
+          if (currentMode === 'draw') {
+            // If a source node is selected (edge drawing in progress), cancel it
+            if (sourceNode) {
+              cy.getElementById(sourceNode).removeClass('source-node');
+              setSourceNode(null);
+              setStatusMessage('Edge drawing cancelled');
+              return;
+            }
+            
+            // Hard-code a position if we don't get one from the event
+            const pos = event.position || { x: 100, y: 100 };
+            console.log('Using position for new node:', pos);
+            
+            // Add a node at this position with a simple label
+            const newLabel = `Node ${nodeIdCounter + 1}`;
+            const newNodeId = createNode(pos.x, pos.y, newLabel, cy);
+            console.log('Created node with ID:', newNodeId);
+            
+            setStatusMessage(`Created ${newLabel}`);
+          } 
+          else if (currentMode === 'edit') {
+            // In edit mode, clicking empty space does nothing special
+            setStatusMessage('Click on a node or edge to edit its properties');
           }
-          
-          // Hard-code a position if we don't get one from the event
-          const pos = event.position || { x: 100, y: 100 };
-          console.log('Using position for new node:', pos);
-          
-          // Add a node at this position with a simple label
-          const newLabel = `Node ${nodeIdCounter + 1}`;
-          const newNodeId = createNode(pos.x, pos.y, newLabel, cy);
-          console.log('Created node with ID:', newNodeId);
-          
-          setStatusMessage(`Created ${newLabel}`);
+          else if (currentMode === 'delete') {
+            // In delete mode, clicking empty space does nothing special
+            setStatusMessage('Click on a node or edge to delete it');
+          }
         }
       });
 
       // Event: Tap on node
       cy.on('tap', 'node', function(event) {
         const node = event.target;
+        const currentMode = cy.data('editingMode') || 'draw';
         
-        if (sourceNode) {
-          // Create edge if source node was previously selected
-          if (sourceNode !== node.id()) {
-            createEdge(sourceNode, node.id(), 1, cy);
-            cy.getElementById(sourceNode).removeClass('source-node');
-            setSourceNode(null);
+        if (currentMode === 'draw') {
+          if (sourceNode) {
+            // Create edge if source node was previously selected
+            if (sourceNode !== node.id()) {
+              // Store source node label before we clear the source node reference
+              const sourceNodeLabel = cy.getElementById(sourceNode).data('label');
+              createEdge(sourceNode, node.id(), 1, cy);
+              cy.getElementById(sourceNode).removeClass('source-node');
+              setSourceNode(null);
+              setStatusMessage(`Created edge from "${sourceNodeLabel}" to "${node.data('label')}"`);
+            } else {
+              // Clicked on same node, deselect it
+              node.removeClass('source-node');
+              setSourceNode(null);
+              setStatusMessage('Source node deselected');
+            }
           } else {
-            // Clicked on same node, deselect it
-            node.removeClass('source-node');
-            setSourceNode(null);
-            setStatusMessage('Source node deselected');
+            // Select as source node for edge creation
+            node.addClass('source-node');
+            setSourceNode(node.id());
+            setStatusMessage(`Selected "${node.data('label')}" as source node - click another node to create an edge`);
           }
-        } else {
-          // Select as source node
-          node.addClass('source-node');
-          setSourceNode(node.id());
-          setStatusMessage(`Selected "${node.data('label')}" as source node`);
+        } 
+        else if (currentMode === 'edit') {
+          // In edit mode, open the node edit modal
+          setNodeEditId(node.id());
+          setStatusMessage(`Editing node "${node.data('label')}"`);
+        }
+        else if (currentMode === 'delete') {
+          // In delete mode, remove the node
+          const nodeLabel = node.data('label');
+          
+          // If this is a source node in edge creation mode, clear that first
+          if (sourceNode && sourceNode === node.id()) {
+            setSourceNode(null);
+          }
+          
+          // Remove the node (this will also remove connected edges)
+          node.remove();
+          setNodeCount(cy.nodes().length);
+          setEdgeCount(cy.edges().length);
+          setStatusMessage(`Deleted node "${nodeLabel}" and its connections`);
         }
       });
 
-      // Event: Right-click on node or edge (desktop)
+      // Event: Right-click on node or edge (desktop) - this is a backup for desktop users
       cy.on('cxttap', 'node, edge', function(event) {
         const ele = event.target;
+        const currentMode = cy.data('editingMode') || 'draw';
+        
+        // For right-click, we'll always offer delete functionality regardless of mode
+        // This gives desktop users a quick way to delete elements
         const type = ele.isNode() ? 'Node' : 'Edge';
         const label = ele.isNode() 
           ? ele.data('label') 
@@ -171,18 +213,28 @@ export default function GraphCanvas() {
         setStatusMessage(`${type} ${label} deleted`);
       });
 
-      // Event: Tap on node for editing
-      cy.on('tap', 'node', function(event) {
-        // Don't open edit modal if we're creating an edge
-        if (sourceNode && sourceNode !== event.target.id()) return;
-        
-        // Open edit modal
-        setNodeEditId(event.target.id());
-      });
-
-      // Event: Tap on edge for editing
+      // Event: Tap on edge
       cy.on('tap', 'edge', function(event) {
-        setEdgeEditId(event.target.id());
+        const edge = event.target;
+        const currentMode = cy.data('editingMode') || 'draw';
+        const sourceLabel = cy.getElementById(edge.data('source')).data('label');
+        const targetLabel = cy.getElementById(edge.data('target')).data('label');
+        
+        if (currentMode === 'draw') {
+          // In draw mode, edge clicks just select the edge
+          setStatusMessage(`Selected edge from "${sourceLabel}" to "${targetLabel}"`);
+        }
+        else if (currentMode === 'edit') {
+          // In edit mode, open the edge edit modal
+          setEdgeEditId(edge.id());
+          setStatusMessage(`Editing edge from "${sourceLabel}" to "${targetLabel}"`);
+        }
+        else if (currentMode === 'delete') {
+          // In delete mode, remove the edge
+          edge.remove();
+          setEdgeCount(cy.edges().length);
+          setStatusMessage(`Deleted edge from "${sourceLabel}" to "${targetLabel}"`);
+        }
       });
       
       // Register touch handlers for mobile

@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { GraphContext } from "@/contexts/GraphContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -24,6 +24,7 @@ import {
   Copy
 } from "lucide-react";
 
+// Define our three editing modes
 type EditingMode = "draw" | "edit" | "delete";
 
 export default function EditingToolbar() {
@@ -32,6 +33,15 @@ export default function EditingToolbar() {
   const [currentMode, setCurrentMode] = useState<EditingMode>("draw");
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [showHelpOverlay, setShowHelpOverlay] = useState(false);
+  
+  // When component mounts, initialize the graph with draw mode
+  useEffect(() => {
+    // Set initial mode
+    if (window.cy) {
+      window.cy.data('editingMode', 'draw');
+      setStatusMessage("Draw Mode: Click canvas to add nodes, click nodes to connect with edges");
+    }
+  }, []);
 
   const handleModeChange = (mode: EditingMode) => {
     setCurrentMode(mode);
