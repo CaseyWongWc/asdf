@@ -2,6 +2,7 @@ import React, { useRef, useContext, useEffect, useMemo } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
 import { GraphContext } from "../contexts/GraphContext";
 import { useIsMobile } from "../hooks/use-mobile";
+import EditingToolbar from "./EditingToolbar";
 
 declare global {
   interface Window {
@@ -206,6 +207,7 @@ const processedElements = useMemo(() => {
         stylesheet={customStylesheet}
         style={{ width: "100%", height: "100%" }}
       />
+      <EditingToolbar />
     </div>
   );
 }
