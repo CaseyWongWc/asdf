@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Terminal } from "lucide-react";
 
 interface ConsoleEntry {
-  type: "input" | "output" | "error";
+  type: "input" | "output" | "error" | "raw";
   content: string;
   timestamp: Date;
 }
@@ -69,7 +69,18 @@ export default function ChatConsole() {
 
       const data = await res.json();
       
-      // Add response to history
+      // Add command output to history if available
+      if (data.commandOutput) {
+        const rawOutputEntry: ConsoleEntry = {
+          type: "raw",
+          content: data.commandOutput,
+          timestamp: new Date()
+        };
+        
+        setHistory(prev => [...prev, rawOutputEntry]);
+      }
+      
+      // Add GPT response to history
       const responseEntry: ConsoleEntry = {
         type: "output",
         content: data.response,
@@ -124,15 +135,27 @@ export default function ChatConsole() {
 
   return (
     <div className="flex flex-col h-full border border-gray-800 rounded-md bg-black text-green-400 font-mono text-sm overflow-hidden">
-      <div className="flex items-center p-2 border-b border-gray-800 bg-gray-900">
-        <Terminal size={18} className="mr-2" />
-        <h3 className="font-bold">GPT Terminal</h3>
+      <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-gray-900">
+        <div className="flex items-center">
+          <Terminal size={18} className="mr-2" />
+          <h3 className="font-bold">GPT Terminal</h3>
+        </div>
+        <div className="text-xs text-gray-400">Executes real bash commands with GPT explanation</div>
       </div>
       
       <div className="flex-1 p-2 overflow-y-auto">
         {history.length === 0 && (
-          <div className="text-gray-500 italic">
-            Type a bash command and GPT will execute it and explain the output.
+          <div className="p-4 text-gray-300 space-y-3 bg-gray-900 rounded-md border border-gray-700">
+            <p className="text-yellow-400 font-bold">Welcome to GPT Terminal</p>
+            <p>This terminal executes real bash commands and uses GPT-4o to explain their output.</p>
+            <p>Try these examples:</p>
+            <ul className="list-disc pl-5 text-blue-400">
+              <li><code>ls -la</code> - List all files with details</li>
+              <li><code>ps aux</code> - Show running processes</li>
+              <li><code>df -h</code> - Show disk usage</li>
+              <li><code>uname -a</code> - Show system information</li>
+            </ul>
+            <p className="text-gray-400 text-sm mt-4">Press Enter to execute commands. Use Up/Down arrows to navigate command history.</p>
           </div>
         )}
         
@@ -144,10 +167,17 @@ export default function ChatConsole() {
                 <span className="text-yellow-400"> $ </span>
                 <span>{entry.content}</span>
               </div>
+            ) : entry.type === "raw" ? (
+              <div className="p-2 mt-1 mb-1 bg-gray-900 border border-gray-700 rounded">
+                <div className="text-xs text-gray-500 mb-1">Command Output:</div>
+                <pre className="text-white text-sm overflow-x-auto whitespace-pre-wrap font-mono">{entry.content}</pre>
+              </div>
             ) : entry.type === "error" ? (
               <div className="text-red-400 whitespace-pre-wrap">{entry.content}</div>
             ) : (
-              <div className="text-green-400 whitespace-pre-wrap">{entry.content}</div>
+              <div className="p-2 mt-1 mb-2 border-l-4 border-green-500 pl-3">
+                <div className="text-green-400 whitespace-pre-wrap">{entry.content}</div>
+              </div>
             )}
           </div>
         ))}

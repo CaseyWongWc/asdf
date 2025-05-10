@@ -90,34 +90,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!command)
         return res.status(400).json({ message: "Command is required" });
 
-      // Construct a prompt that asks GPT to explain the bash command
-      const prompt = `You are a bash command processor. 
-The user has input this command: "${command}"
+      // Execute the command in a child process
+      const { exec } = require('child_process');
+      
+      exec(command, async (error: any, stdout: string, stderr: string) => {
+        let commandOutput = '';
+        
+        if (error) {
+          commandOutput = `Error: ${error.message}`;
+        } else if (stderr) {
+          commandOutput = stderr;
+        } else {
+          commandOutput = stdout;
+        }
+        
+        // Construct a prompt that asks GPT to explain the bash command and its output
+        const prompt = `You are a bash command processor. 
+The user executed this command: "${command}"
+
+The command output was:
+\`\`\`
+${commandOutput}
+\`\`\`
 
 Please respond with:
 1. A brief explanation of what this command does
-2. Any potential risks or warnings about executing this command
-3. The expected output, formatted clearly
+2. An explanation of the output
+3. Any potential follow-up commands that might be useful
 
 Format your response in a clear, readable way.`;
 
-      const completion = await openai.chat.completions.create({
-        // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        model: "gpt-4o",
-        messages: [{ role: "system", content: "You are a helpful bash command assistant." }, 
-                  { role: "user", content: prompt }],
+        const completion = await openai.chat.completions.create({
+          // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          model: "gpt-4o",
+          messages: [{ role: "system", content: "You are a helpful bash command assistant." }, 
+                    { role: "user", content: prompt }],
+        });
+
+        const message = completion.choices[0].message?.content;
+        if (!message)
+          return res.status(500).json({ message: "Invalid GPT response" });
+
+        res.json({ 
+          response: message,
+          commandOutput: commandOutput 
+        });
       });
-
-      const message = completion.choices[0].message?.content;
-      if (!message)
-        return res.status(500).json({ message: "Invalid GPT response" });
-
-      res.json({ response: message });
     } catch (error: any) {
-      console.error("OpenAI API error:", error);
+      console.error("API error:", error);
       res
         .status(500)
-        .json({ message: error.message || "Error calling OpenAI API" });
+        .json({ message: error.message || "Error executing command" });
     }
   });
 
