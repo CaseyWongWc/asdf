@@ -1,6 +1,6 @@
 import { useContext, useEffect } from "react";
 import Header from "./Header";
-import InstructionBar from "./InstructionBar";
+import MainMenuBar from "./MainMenuBar";
 import GraphCanvas from "./GraphCanvas";
 import StatusBar from "./StatusBar";
 import NodeEditModal from "./NodeEditModal";
@@ -27,7 +27,7 @@ export default function GraphEditor() {
   return (
     <div className={`flex flex-col h-screen ${title === "THIS IS NOT A DRILL" ? "bg-green-50" : "bg-background"}`}>
       <Header />
-      <InstructionBar />
+      <MainMenuBar />
       <GraphCanvas />
       <StatusBar />
       <NodeEditModal />
